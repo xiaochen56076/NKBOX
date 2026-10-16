@@ -1,0 +1,46 @@
+# UtilityBox · .gitignore
+#
+# ★ 关键：local.properties 必须排除。
+#   它保存本机 SDK 路径，且（按 app/build.gradle.kts 的约定）可存放 API Key。
+#   红线要求 API Key 不得进入版本库。
+
+# ---- 含机密 / 本机路径 ----
+local.properties
+*.keystore
+*.jks
+keystore.properties
+
+# ---- 构建产物 ----
+build/
+.gradle/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# ---- IDE ----
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# ---- Android ----
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+
+# ---- 补充（P11 补 55）----
+# Kotlin 编译器会话目录：每次编译都变，进版本库是无意义的噪音
+.kotlin/
+# macOS / Windows 系统文件
+.DS_Store
+Thumbs.db
+# 签名配置（可能含口令）
+signing.properties

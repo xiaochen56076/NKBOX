@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      窗口级主题只负责"启动瞬间"的外观。
+      应用内所有视觉一律由 Compose 设计系统（core/design）接管，
+      故此处使用无 ActionBar 的基础主题，并让窗口背景与浅色主题底色一致，避免启动白闪。
+    -->
+    <style name="Theme.UtilityBox" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ub_window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

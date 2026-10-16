@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide Icons v1.57.0 — ISC License, Copyright (c) Lucide Icons and Contributors
+     https://lucide.dev  ·  由 lucide-static@1.57.0 的官方 SVG 转换而来，未改动图形
+     许可证全文见项目根目录 LICENSES.md -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="m15 18-6-6 6-6"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

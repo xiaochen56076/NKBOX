@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「三角洲行动」的游戏标识 · 本项目自行设计（P11 补 32，补 33 按官方构成重画）。
+
+  设计思路
+  用户提供了官方 Logo 作为**构成参考**：一个三角形轮廓，里面嵌一道闪电。
+  本图形是照这个**构成**重新绘制的，不是描摹官方图形的坐标 ——
+  官方那版还有左边的双线描边等细节，24dp 下会糊成一团，故未采用。
+
+  为什么是「三角 + 闪电」
+  三角：游戏名「三角洲」的字面意思就是 delta（Δ），几何、干净。
+  闪电：对应「行动」的作战与速度感。
+
+  几何约束（闪电必须落在三角形内边界里，不能压到边框）
+  y = 8  时内宽约 10.8 到 13.2
+  y = 13 时内宽约 8.5 到 15.5
+  y = 17 时内宽约 6.5 到 17.5
+  闪电折线取 (12.8, 7.6) → (9.2, 12.8) → (11.9, 12.8) → (9.9, 17.4)，均在范围内。
+
+  规格（与 Lucide 对齐，保证同排不违和）
+  视口 24 × 24 · 线宽 2 · 端点 round · 连接 round
+  三角形：顶点 (12, 3.5)、底边 19.5
+
+  版权
+  图形由本项目绘制，不是官方 Logo、不是抓取的素材。
+  「三角洲行动」是腾讯的商标。本项目为个人自用、不传播，
+  用户已明确知悉并接受该情况，详见项目根目录 LICENSES.md 第五节。
+
+  ★ 注意：XML 注释里不允许出现连续两个 ASCII 连字符（那是注释的结束标记），
+    所以本文件用「·」和换行排版，没有用 Markdown 表格。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Δ：三角形轮廓，圆角连接 -->
+    <path
+        android:pathData="M12,3.5 L20.5,19.5 L3.5,19.5 Z"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 闪电：三角内的一道折线 -->
+    <path
+        android:pathData="M12.8,7.6 L9.2,12.8 L11.9,12.8 L9.9,17.4"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

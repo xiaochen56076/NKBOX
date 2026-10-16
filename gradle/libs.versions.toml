@@ -1,0 +1,52 @@
+[versions]
+agp = "9.2.1"
+# ★ Kotlin 2.4.21 —— 用户于 P01 裁决（解锁 mv=[2,4,0] 的折射式液态玻璃）
+#   配套要求：Compose 编译器插件版本必须等于 Kotlin 版本。
+kotlin = "2.4.21"
+# ★ Compose BOM 2026.09.00 —— 用户于 P04 批准（引入 Haze 2.0.1 折射玻璃）
+#   该 BOM 精确钉住 ui/foundation/runtime/animation-core = 1.12.1、material3 = 1.4.0，
+#   与 haze-glass:2.0.1 的要求**完全吻合**。
+#   这样是「BOM 与库指向同一套版本」，而不是让库单方面把版本顶上去。
+#   （原为 2026.02.01，钉 ui 1.10.4；详见 docs/liquid-glass-library-eval.md）
+composeBom = "2026.09.00"
+coreKtx = "1.10.1"
+activityCompose = "1.13.0"
+# ★ Haze 2.0.1 —— 用户于 P04 裁决采用（"按照那两种的来"）
+#   Apache-2.0；提供折射式液态玻璃（Regular / Clear 两种材质）
+haze = "2.0.1"
+junit = "4.13.2"
+coroutinesTest = "1.9.0"
+# ★ Vico 2.5.2 —— 价格历史图表（P11 补 50）
+#   为什么引：手绘 Canvas 的坐标轴要自己排版，实测**数字过长会挤成竖排**
+#   （真机截图：`31,947,82832,568,813…` 下面跟着竖着排的 `4 8 , 9 1 0 / 1 5`）；
+#   而且没有"点击某点看数值"的交互。Vico 两样都内置。
+#   ★ 兼容性已实测：与 Compose BOM 2026.09.00 / Kotlin 2.4.21 共存，
+#     370 例单测全绿（不是"仓库能下载"就算，是**编译过**才算）。
+#   ★ 代价：构建不再是离线的，首次构建需要能访问 Maven。
+vico = "2.5.2"
+
+[libraries]
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+# 液态玻璃：核心 + 折射玻璃效果 + Material3 集成（后者让材质跟随主题 surface 色）
+haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
+haze-glass = { group = "dev.chrisbanes.haze", name = "haze-glass", version.ref = "haze" }
+haze-glass-material3 = { group = "dev.chrisbanes.haze", name = "haze-glass-material3", version.ref = "haze" }
+# 仅测试：纯逻辑单测（解析、错误映射、缓存新鲜度、四态判定）
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+# 图表：compose-m3 是薄的 M3 主题适配层（只有一个 rememberM3VicoTheme），
+#       真代码在它的传递依赖 compose / core 里（实测 aar 体积 3.8KB / 219KB / 660KB）
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

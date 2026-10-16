@@ -1,0 +1,96 @@
+# CHANGELOG
+
+本项目所有重要修改记录在此。**每完成一个阶段必须更新。**
+
+---
+
+## [P00] 2026-10-14 — 需求分析与需求冻结
+
+### 新增
+- 建立项目长期记忆文件：`PROJECT_RULES.md`、`ROADMAP.md`、`ARCHITECTURE.md`、`TASKS.md`、`CHANGELOG.md`、`DATA_SOURCES.md`、`TEST_REPORT.md`、`KNOWN_ISSUES.md`、`README.md`
+- P00 交付文档：`docs/requirements.md`、`docs/architecture.md`、`docs/ui-design.md`、`docs/data-sources.md`、`docs/risks.md`
+- 工程目录骨架（**仅目录，无任何代码**）：
+  `app/src/main/java/com/utilitybox/{app,core,domain,game/deltaforce,feature}`
+  `app/src/{test,androidTest}/java/com/utilitybox`、`docs/`、`gradle/`
+
+### 完成
+- 环境勘察：确认 UtilityBox 工程此前**不存在**（全新项目，无覆盖既有工程风险）
+- 环境自检：SDK / adb / emulator / JDK21 / AVD `dsh_pixel10` 均正常；模拟器当前未启动
+- 参考工程勘察：`GameMate` 的版本基线、模块结构、实测接口清单
+- **数据源核验**（P00 最重要的产出）：
+  - 逐条核验 `_refs/yunzai-df/Delta-Force-API-DOCS.md`（203 KB / 7834 行）
+  - 逐条核验 `_refs/astrbot-df/core/client.py` 与 `yunzai-df/components/Code.js`
+  - 结论：今日密码 ✅ 已验证；物品物价 ✅ 已验证；**好友在线状态 ❌ 无可用数据源**
+- 交付 13 项 P00 文档内容
+
+### ★ 真实调用实测（用户提供 API Key，Q1 方案 A 已裁决后补充）
+
+**方法**：Key 仅通过环境变量 `UBOX_API_KEY` 传入，**未写入任何文件**。
+
+| 端点 | 结果 |
+|---|---|
+| `dailykeyword` | ✅ 200 / code=0，6 张地图密码；**确认无日期字段** |
+| `object/search` | ✅ 200，`钛`→4 条、`钢`→28 条；字段比文档记录**更丰富** |
+| `object/price/ams/latest` | ✅ 200，`avgPrice=49444`，含 `source`/`amsSerial` |
+| `object/price/ams/history/v1` | ✅ 200，7 天 7 点，**含每日真实样本数 `count`** |
+| `place/material/price` | ✅ 200，含 `priceSource` 与 Unix `timestamp` |
+| `object/ammo` | ✅ 200，113 项；**抓到 `hasValidPriceData:false` + `avgPrice:0` 真实样本** |
+| `person/friendinfo` | 🔴 **402「余额不足，本次请求需要 1 积分」→ 付费端点，本账号 0 积分** |
+| `gamesafe/online` | 🟠 400「缺少 X-Framework-Token 请求头」 |
+| `person/friends`/`friend`/`friendlist`、`friend/status`、`social/friends` | 🔴 **404，全部不存在** |
+| 7 个 `user/{info,statistics,points,quota,balance,credits}` + `df/user/statistics` | 🔴 **404，无余额查询接口** |
+
+**关键结论**：**本 API 是积分制收费**；免费端点已覆盖今日密码与物品物价的**全部需求**；
+好友状态**即使付费也仍缺"好友列表"**，故用户裁决的 **Q1 方案 A（降级实现）成立**。
+
+### ★ 依赖可行性实测（P00 收尾，独立复核）
+
+**方法**：下载 AAR → 取 `classes.jar` → **JDK 21 `javap -v` 读 `@Metadata(mv=)`**；以及直接解析 POM。
+
+| 发现 | 结论 |
+|---|---|
+| Kotlin metadata 天花板 | Kotlin 2.2.10 只能读 `mv ≤ 2.3.x`。**`haze 2.0.1` / `backdrop 2.0.1` / `cloudy` 均为 `mv=[2,4,0]` → 编译期硬报错** |
+| 唯一可用的液态玻璃 | `io.github.nadeemiqbal:liquid-glass:0.2.3`（`mv=[2,3,0]`，Apache-2.0，minSdk 24） |
+| Haze 1.7.2 / 1.7.3 | `mv=[2,2,0]` / `[2,3,0]` 可用，但**仅纯模糊，无折射**（`haze-glass` 只存在于 2.x） |
+| Kotlin 2.4.x 可用性 | `kotlin-gradle-plugin` 与 `kotlin-compose-compiler-plugin-embeddable` 的 **2.4.10 / 2.4.21 均为稳定版**（实测存在） |
+| ⚠️ **修正错误** | **`AGENT_GUIDE.md` 称"BOM 2026.02.01 不再包含 material-icons"是错的**。实测 BOM 240 条中**确有** `material-icons-core/-extended = 1.7.8`；官方只是把它移出 material3 的**传递依赖** |
+| BOM 覆盖范围 | 仅 **7 个 `androidx.compose.*` groupId**，**不含** lifecycle / navigation / activity / room / datastore |
+| ⚠️ 静默坑 | `lifecycle-viewmodel-compose:2.11.0` 声明依赖 `compose.runtime:1.11.0` → **会拉高 BOM 的 1.10.4**；应用 **2.10.0**（依赖 runtime 1.9.0） |
+| 导航候选 | `navigation-compose:2.10.2` 拉 `ui/runtime` 到 **1.10.5**；`navigation3:1.2.0` 用 `runtime 1.9.5`（**最干净**） |
+| 许可证 | 全部候选库**均为 Apache-2.0，未发现任何 GPL/AGPL** |
+| AGP 9 插件 | AGP 9.0+ **内置 Kotlin 支持**，**不要**再加 `org.jetbrains.kotlin.android` |
+
+### 决策
+| # | 决策 | 理由 |
+|---|---|---|
+| D1 | 首期只建 **1 个 Gradle 模块 `:app`**，用包结构表达边界 | 设计稿明确"不建议一开始就拆出几十个独立模块" |
+| D2 | 手写 DI 容器，不引 Hilt/Koin | 零新依赖优先 |
+| D3 | `HttpURLConnection` + `org.json` + `SharedPreferences` | 本机已验证；接口已抽象，未来可换实现 |
+| D4 | 工具注册用**显式注册列表**，不用反射/SPI/动态加载 | 编译期安全、零依赖；动态加载被设计稿否决 |
+| D5 | P00 **不选定** Liquid Glass 具体实现 | 未验证前不写死依赖 |
+| D6 | **不建立 `core/plugin/` 包**，落地为 `core/tool/` + `domain/tool/` | 避免"plugin"暗示动态加载能力 |
+| D7 | **采用 Q1 方案 A**（用户裁决） | 好友状态降级实现，保留四态模型与排序逻辑，页面如实说明无数据源 |
+| D8 | 图标首选**手绘**，但**修正**"图标库不可用"的错误前提 | 零依赖优先；库其实可用 |
+| D9 | 依赖入库前**必须实测 `mv`**，禁止用 POM 的 kotlin-stdlib 推断 | 已证 POM 声明 ≠ 编译版本 |
+
+### 变更
+- 修正 `PROJECT_RULES.md` §5：替换错误的 material-icons 前提为已实测结论
+- 修正 `docs/architecture.md` D6：说明手绘理由是"零依赖"而非"库不存在"
+- `docs/risks.md` 新增 **R-00（Kotlin metadata 天花板）**、**R-02b（AGP 9 内置 Kotlin）**，并补全 R-02 的传递依赖实测表
+
+### 未执行事项（如实标注）
+- ❌ **未执行任何构建**（P00 不生成应用代码，无工程可构建）
+- ❌ **未执行任何测试**
+- ❌ **未执行设备/模拟器验证**（模拟器未启动）
+- ❌ **未验证 `liquid-glass:0.2.3` 的实际编译**（仅基于 `mv` 规则判定可用）
+- ❌ **未验证 Kotlin 2.4.x 路线**（未构建，且需先确认 AGP 9.2.1 内置 KGP 能否配合 2.4.x）
+- ❌ **未实测付费端点 `friendinfo` 的响应 schema**（账号 0 积分）
+
+### 风险
+- 🔴 **R-00**：Kotlin metadata 天花板挡住全部真·液态玻璃库 → **需用户裁决路线 A/B**
+- ⚠️ 好友在线状态无可用数据源（已裁决方案 A）
+- ⚠️ 今日密码接口无日期字段（已实测坐实）
+- ⚠️ 数据源为社区第三方，且个人数据类端点收费
+
+---
+

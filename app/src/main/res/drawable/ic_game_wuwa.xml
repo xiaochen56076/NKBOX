@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「鸣潮」的游戏标识 · 本项目自行设计（P11 补 32，补 35 按官方徽记的构成重画）。
+
+  用户提供了官方那枚部落纹样风格的徽记作为**构成参考**。
+  本图形是照它的**构成要素**重新绘制的，不是描摹官方路径。
+
+  为什么必须大幅简化
+  官方徽记包含大量细碎的尖羽、交错的纹路和成组的菱形，
+  这类图形缩到 24dp 会糊成一团黑，在底栏那种尺寸下完全不可辨。
+  所以只抽三个最有辨识度的元素：
+
+  一、上冲的尖羽冠（两条平行上升的曲线）
+      官方徽记的主体，也是最能代表「鸣潮」的部分。
+      线面用曲线不带尖角，是因为线性图标画不出那种渐细的羽尖，
+      画了反而像锯齿。
+  二、菱形簇（右上两枚菱形）
+      官方徽记里成组的菱形是其最鲜明的记号，而且是纯几何形，
+      在 24dp 下可以画准。
+  三、底部横线
+      对应官方徽记里横贯的矛线，给整个图形一个"地平线"，
+      让上冲的羽冠有落脚点。
+
+  规格（与 Lucide 对齐，保证同排不违和）
+  视口 24 × 24 · 线宽 2 · 端点 round · 连接 round
+
+  版权
+  图形由本项目绘制，不是官方 Logo、不是抓取的素材。
+  「鸣潮」是库洛游戏的商标。本项目为个人自用、不传播，
+  用户已明确知悉并接受该情况，详见项目根目录 LICENSES.md 第五节。
+
+  ★ 注意：XML 注释里不允许出现连续两个 ASCII 连字符（那是注释的结束标记），
+    所以本文件用「·」和换行排版，没有用 Markdown 表格。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 羽冠外缘：从左下升起，冲向右上 -->
+    <path
+        android:pathData="M4.5,19 C6.5,14.5 8,9 10,3.5"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 羽冠内缘：与上一条平行，形成"层叠的羽" -->
+    <path
+        android:pathData="M8.5,19 C10.5,15 12,10.5 13.5,6"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 菱形一：官方徽记里成组菱形的记号 -->
+    <path
+        android:pathData="M18.7,6 L20.2,7.5 L18.7,9 L17.2,7.5 Z"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 菱形二 -->
+    <path
+        android:pathData="M18.7,11 L20.2,12.5 L18.7,14 L17.2,12.5 Z"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 底部的横线：对应官方徽记里横贯的矛线 -->
+    <path
+        android:pathData="M3.5,20.5 L20.5,20.5"
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

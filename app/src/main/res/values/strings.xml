@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用名（用户要求：改为「N盒」）。
+         ★ 这是**唯一**的定义处 —— 界面显示应当读它，
+           否则会出现"桌面图标叫一个名字、界面里叫另一个名字"。
+           各页面通过 UbStrings.appName 读取（见 core/design/UbBrand.kt）。 -->
+    <string name="app_name">N盒</string>
+    <!-- 启动页副标题。用"游戏工具箱"而不是原来的"工具箱"：
+         「N盒」这个名字本身不含"游戏"二字，副标题需要把品类补上。 -->
+    <string name="app_tagline">游戏工具箱</string>
+</resources>

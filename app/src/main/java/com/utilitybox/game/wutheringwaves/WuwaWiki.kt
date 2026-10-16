@@ -54,6 +54,7 @@ import com.utilitybox.game.wutheringwaves.kuro.WikiEntry
 import com.utilitybox.game.wutheringwaves.kuro.WikiEntryDetail
 import com.utilitybox.game.wutheringwaves.kuro.WikiHtml
 import com.utilitybox.game.wutheringwaves.kuro.WikiResult
+import com.utilitybox.game.wutheringwaves.kuro.WikiSubCatalogue
 // ★ 本文件在父包 wutheringwaves，而筛选相关的东西在子包 kuro ——
 //   Kotlin **不会**自动把子包带进来（这一点和 Java 不同），必须逐个 import。
 import com.utilitybox.game.wutheringwaves.kuro.WikiTagGroup
@@ -91,6 +92,22 @@ private const val CAT_GUIDE = "攻略合集"
 
 /** 攻略合集里保留哪个子分类 —— 实测「角色攻略」下有 59 个角色，每个一篇养成 */
 private const val CAT_ROLE_GUIDE = 1384
+
+/**
+ * 「共鸣者」分类 id（P11 补 62）。
+ *
+ * ★ 实测值（探针 `wiki1384.ps1` / `wiki_entry.ps1`）。
+ *
+ * **养成数据在这里，不在 1384**：
+ * - `1384`（角色攻略）→ 59 个角色 → 每个角色下是**玩家攻略帖聚合**，
+ *   唯一的词条实测 `modules = 0`（空壳）——拿不到共鸣链和突破材料；
+ * - `1105`（共鸣者）→ 65 个角色 → **完整词条**（5 个模块，
+ *   含基础资料与角色养成：技能介绍 / 共鸣链 / 角色突破材料）。
+ *
+ * 所以「养成」入口指向这里。写实测 id 而不是猜树结构，
+ * 和上面合并入口用 1105/1106 是同一个思路。
+ */
+const val CAT_RESONATOR = 1105
 
 /**
  * 「角色与武器」合并入口的**哨兵 id**。
@@ -193,21 +210,30 @@ fun WuwaWikiCategoriesScreen(onOpenCategory: (Int, String) -> Unit, modifier: Mo
                             )
                         }
                     } else {
-                        // ---- 养成：直接放「角色攻略」这一个入口 ----
+                        // ---- 养成：指向**共鸣者列表**（P11 补 62）----
                         //
-                        // ★★ 这里**不能用 flattenLeaves**（P11 补 45 实测踩到的坑）：
-                        //   flattenLeaves 会把「角色攻略」**继续往下展平成它的 59 个角色**，
-                        //   于是列表里根本不存在名为「角色攻略」的项，
-                        //   `filter { it.name in GUIDE_KEEP }` 会把全部滤掉 ——
-                        //   表现是「养成」标题下面**一个条目都没有**（实测所见）。
+                        // ★★ 这里原来指向 1384（角色攻略）。**实测那条路是死的**：
                         //
-                        //   改用**实测的分类 id**（1384 = 角色攻略，见 docs/wiki-filter-api.md），
-                        //   和上面合并入口用 1105/1106 是同一个思路：
-                        //   接口给的是固定目录，写实测 id 比猜树结构稳。
+                        //   getPage(1384) → 59 个角色（子分类）
+                        //     └─ getPage(1644)「心」→ 9 条 `kuro-post-component`
+                        //         其中 8 条是**外链 kurobbs 帖子**（linkUrl=.../post/...），
+                        //         唯一那个词条（1546618120826560512）实测
+                        //         **modules = 0** —— 空壳，名字还叫「角色攻略-心」。
+                        //
+                        //   也就是说走 1384 那一层，**根本拿不到养成数据** ——
+                        //   共鸣链、突破材料在那个空壳里一条都没有（关键词计数全为 0）。
+                        //
+                        //   真正的养成数据在图鉴的**共鸣者词条**里：
+                        //   1105 → 65 个角色 → 完整词条（5 个模块，
+                        //   含「基础资料」「角色养成（技能介绍/共鸣链/角色突破材料）」）。
+                        //
+                        //   → 所以「养成」直接指向 1105，点角色直达完整词条。
+                        //     顺带把导航从 4 层压到 3 层 —— 这也正是用户问的
+                        //     「为什么点了角色后，才到这个界面」。
                         item(key = "growth") {
                             WikiCategoryTile(
                                 name = "角色养成",
-                                onClick = { onOpenCategory(CAT_ROLE_GUIDE, "角色养成") },
+                                onClick = { onOpenCategory(CAT_RESONATOR, "角色养成") },
                             )
                         }
                     }
@@ -570,7 +596,72 @@ fun WuwaWikiCharWeaponScreen(
 }
 
 // ---------------------------------------------------------------------------
-// 2. 条目列表
+// 2. 子分类（图鉴的中间层，P11 补 60）
+// ---------------------------------------------------------------------------
+
+/**
+ * 子分类网格。
+ *
+ * ★ 形态和条目卡一致（两列、封面在上、名字在下）—— 因为对用户来说
+ *   「养成 → 心」和「角色 → 心」是**同一件事**：一个可以用图认出来的东西。
+ *   两者长得不一样只会让人以为进错了地方。
+ *
+ * ★ 封面来自 `content.contentUrl`（实测每个角色都有，如「心.png」），
+ *   **不是**靠名字现拼 URL —— 那样拼错了就是一堆破图。
+ */
+@Composable
+private fun WuwaWikiSubCategoryGrid(
+    items: List<WikiSubCatalogue>,
+    onOpen: (Int, String) -> Unit,
+) {
+    val c = LocalUbColors.current
+    val s = LocalUbSpacing.current
+    val t = LocalUbTypography.current
+    val r = LocalUbRadius.current
+
+    androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+        columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = s.screenH,
+            end = s.screenH,
+            top = s.m,
+            bottom = LocalUbSize.current.bottomBarReserved,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(s.m),
+        verticalArrangement = Arrangement.spacedBy(s.m),
+    ) {
+        items(items, key = { it.catalogueId }) { item ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(r.card))
+                    .background(c.bgElevated)
+                    .ubClickable(onClick = { onOpen(item.catalogueId, item.name) })
+                    .padding(s.m),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(s.s),
+            ) {
+                if (item.imageUrl != null) {
+                    UbItemIcon(
+                        url = item.imageUrl,
+                        contentDescription = item.name,
+                        size = 96.dp,
+                    )
+                }
+                Text(
+                    text = item.name,
+                    style = t.bodyLarge,
+                    color = c.textPrimary,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. 条目列表
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -578,6 +669,16 @@ fun WuwaWikiEntriesScreen(
     catalogueId: Int,
     title: String,
     onOpenEntry: (String, String) -> Unit,
+    /**
+     * 打开一个**子分类**（P11 补 60）。
+     *
+     * ★ 有些分类页返回的不是条目，而是**子分类** ——
+     *   典型是「养成」：`getPage(1384)` 返回 59 个角色的分类，
+     *   每个点进去才是该角色的养成词条。
+     *
+     *   没有这个回调，那一层就**点不进去**（之前的表现是「这个分类下没有条目」）。
+     */
+    onOpenCategory: (Int, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = LocalUbColors.current
@@ -585,6 +686,15 @@ fun WuwaWikiEntriesScreen(
     val t = LocalUbTypography.current
 
     var entries by remember(catalogueId) { mutableStateOf<List<WikiEntry>>(emptyList()) }
+    /**
+     * 子分类列表（P11 补 60）。
+     *
+     * ★ 与 [entries] 是**互斥的两种内容形态**，来自同一个响应：
+     *   接口要么给条目（有 entryId），要么给子分类（有 linkConfig.catalogueId）。
+     */
+    var subCatalogues by remember(catalogueId) {
+        mutableStateOf<List<WikiSubCatalogue>>(emptyList())
+    }
     // 筛选条件树**来自接口**，不写死 —— 不同分类的筛选维度不同
     var filterGroups by remember(catalogueId) { mutableStateOf<List<WikiTagGroup>>(emptyList()) }
     var loading by remember(catalogueId) { mutableStateOf(true) }
@@ -606,6 +716,7 @@ fun WuwaWikiEntriesScreen(
         when (val r = KuroWikiApi.page(catalogueId)) {
             is WikiResult.Ok -> {
                 entries = r.value.entries
+                subCatalogues = r.value.subCatalogues
                 filterGroups = r.value.filterGroups
             }
             is WikiResult.Failure -> error = r.message
@@ -642,6 +753,15 @@ fun WuwaWikiEntriesScreen(
                     modifier = Modifier.padding(vertical = s.m),
                 )
             }
+            // ★ P11 补 60：**子分类优先**。
+            //
+            //   「养成」这一页返回的就是 59 个角色的分类。在修好解析之前，
+            //   它走的是下面的 `entries.isEmpty()`，显示「这个分类下没有条目」——
+            //   用户看到的是"这页是空的"，实际是**一整层导航被吃掉了**。
+            subCatalogues.isNotEmpty() -> WuwaWikiSubCategoryGrid(
+                items = subCatalogues,
+                onOpen = onOpenCategory,
+            )
             entries.isEmpty() -> SectionCard {
                 UbEmpty(
                     title = "这个分类下没有条目",

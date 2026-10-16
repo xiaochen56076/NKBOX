@@ -408,12 +408,35 @@ private fun UbRootShell(
                                         )
                                     }
                                 } else {
-                                    SubPage(title = "图鉴", onBack = { navigator.back() }) {
+                                    // ★ P11 补 63：标题**按分类走**，不能写死「图鉴」。
+                                    //
+                                    //   用户明确指出「这里是养成，不是图鉴」——
+                                    //   从「角色养成」进来时顶栏写着「图鉴」是错的。
+                                    //
+                                    //   ★ 上一轮我在这一行**只加了注释、没改代码**，
+                                    //     而注释写得像已经改过了。注释不能代替改动，
+                                    //     这次是真改了。
+                                    //
+                                    //   为什么用 when(id) 而不是把名字塞进路由：
+                                    //   路由只带 id，往里塞中文名字要编码、还要处理冲突；
+                                    //   而这里只需要区分"是不是养成"，一个判断就够。
+                                    val wikiTitle = when (wikiCatId.toIntOrNull()) {
+                                        com.utilitybox.game.wutheringwaves.CAT_RESONATOR -> "角色养成"
+                                        else -> "图鉴"
+                                    }
+                                    SubPage(title = wikiTitle, onBack = { navigator.back() }) {
                                         com.utilitybox.game.wutheringwaves.WuwaWikiEntriesScreen(
                                             catalogueId = wikiCatId.toIntOrNull() ?: 0,
                                             title = "图鉴",
                                             onOpenEntry = { entryId, _ ->
                                                 navigator.navigate(UbRoutes.wuwaWikiEntry(entryId))
+                                            },
+                                            // ★ P11 补 60：**子分类**（如「养成」下的 59 个角色）。
+                                            //   复用分类路由，只是换成子分类自己的 catalogueId ——
+                                            //   它来自 `content.linkConfig.catalogueId`，
+                                            //   **不是**记录的 `id`（拿后者查会返回 0 条，已实测）。
+                                            onOpenCategory = { id, _ ->
+                                                navigator.navigate(UbRoutes.wuwaWikiCategory(id))
                                             },
                                         )
                                     }

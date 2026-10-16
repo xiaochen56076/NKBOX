@@ -115,7 +115,9 @@ object KuroWikiApi {
             post("/wiki/core/catalogue/item/getPage", "catalogueId=$catalogueId&pageNo=$pageNo&pageSize=$pageSize")
         }.let { raw ->
             when (raw) {
-                is WikiResult.Ok -> WikiResult.Ok(parseEntries(raw.value))
+                // ★ 只取条目部分：这个接口的语义就是"给我条目"，
+                //   子分类由 `page()` 承载（它才需要同时返回两种形态）
+                is WikiResult.Ok -> WikiResult.Ok(parseRecords(raw.value).first)
                 is WikiResult.Failure -> raw
             }
         }
@@ -131,42 +133,87 @@ object KuroWikiApi {
             post("/wiki/core/catalogue/item/getPage", "catalogueId=$catalogueId&pageNo=1&pageSize=100")
         }.let { raw ->
             when (raw) {
-                is WikiResult.Ok -> WikiResult.Ok(
-                    WikiPage(
-                        entries = parseEntries(raw.value),
-                        filterGroups = parseTagGroups(raw.value),
-                    ),
-                )
+                is WikiResult.Ok -> {
+                    val parsed = parseRecords(raw.value)
+                    WikiResult.Ok(
+                        WikiPage(
+                            entries = parsed.first,
+                            subCatalogues = parsed.second,
+                            filterGroups = parseTagGroups(raw.value),
+                        ),
+                    )
+                }
                 is WikiResult.Failure -> raw
             }
         }
 
-    private fun parseEntries(root: JSONObject): List<WikiEntry> {
+    /**
+     * 把一次 `getPage` 的记录**三分**：条目 / 子分类 / 占位卡片（丢弃）。
+     *
+     * ### ★ 这里原来是一个二分类，正是 bug 的根源
+     *
+     * 原代码：
+     * ```kotlin
+     * // 跳过占位卡片：invalid=true 或没有 entryId 的，点进去只会看到 2031
+     * if (name.isBlank() || entryId == 0L || o.optBoolean("invalid", false)) return@mapNotNull null
+     * ```
+     *
+     * 这个判断**本身没写错** —— 图鉴 1105/1106 里确实有占位卡片需要滤掉。
+     * 但它把「**子分类**」和「占位卡片」当成了同一类，因为两者**都是 `entryId = 0`**。
+     *
+     * 而子分类不是垃圾，它是**一整层导航**（养成 → 59 个角色）。被滤掉之后，
+     * 那一页就只剩「这个分类下没有条目」。
+     *
+     * ### 靠什么区分
+     *
+     * 子分类有 `content.linkConfig.catalogueId`（实测「心」→ 1644），占位卡片没有。
+     * 这个字段是**实测出来的**，不是推测 —— 见 [WikiSubCatalogue] 的说明。
+     */
+    private fun parseRecords(root: JSONObject): Pair<List<WikiEntry>, List<WikiSubCatalogue>> {
         val records = root.optJSONObject("data")
             ?.optJSONObject("results")
-            ?.optJSONArray("records") ?: return emptyList()
-        return (0 until records.length()).mapNotNull { i ->
-            val o = records.optJSONObject(i) ?: return@mapNotNull null
-            val entryId = o.optLong("entryId", 0L)
-            val name = o.optString("name").ifBlank {
-                o.optJSONObject("content")?.optString("title").orEmpty()
-            }
-            // ★ 跳过占位卡片：invalid=true 或没有 entryId 的，点进去只会看到 2031
-            if (name.isBlank() || entryId == 0L || o.optBoolean("invalid", false)) return@mapNotNull null
+            ?.optJSONArray("records") ?: return emptyList<WikiEntry>() to emptyList()
+
+        val entries = mutableListOf<WikiEntry>()
+        val subCatalogues = mutableListOf<WikiSubCatalogue>()
+
+        for (i in 0 until records.length()) {
+            val o = records.optJSONObject(i) ?: continue
             val content = o.optJSONObject("content")
-            WikiEntry(
-                entryId = entryId.toString(),
-                name = name,
-                star = content?.optString("star")?.toIntOrNull() ?: 0,
-                imageUrl = content?.optString("contentUrl")?.takeIf { it.startsWith("http") },
-                subtitle = content?.optString("optionalTitle").orEmpty(),
-                relateTagIds = content?.optJSONArray("relateTagIds")?.let { arr ->
-                    (0 until arr.length()).mapNotNull { j -> arr.optString(j).takeIf { it.isNotBlank() } }
-                }.orEmpty(),
-                cornerMark = content?.optBoolean("cornerMark", false) ?: false,
-                cornerMarkUrl = content?.optString("cornerMarkUrl")?.takeIf { it.startsWith("http") },
-            )
+            val name = o.optString("name").ifBlank { content?.optString("title").orEmpty() }
+            if (name.isBlank()) continue
+
+            val entryId = o.optLong("entryId", 0L)
+            if (entryId != 0L) {
+                // ---- 真条目 ----
+                if (o.optBoolean("invalid", false)) continue
+                entries += WikiEntry(
+                    entryId = entryId.toString(),
+                    name = name,
+                    star = content?.optString("star")?.toIntOrNull() ?: 0,
+                    imageUrl = content?.optString("contentUrl")?.takeIf { it.startsWith("http") },
+                    subtitle = content?.optString("optionalTitle").orEmpty(),
+                    relateTagIds = content?.optJSONArray("relateTagIds")?.let { arr ->
+                        (0 until arr.length()).mapNotNull { j -> arr.optString(j).takeIf { it.isNotBlank() } }
+                    }.orEmpty(),
+                    cornerMark = content?.optBoolean("cornerMark", false) ?: false,
+                    cornerMarkUrl = content?.optString("cornerMarkUrl")?.takeIf { it.startsWith("http") },
+                )
+                continue
+            }
+
+            // ---- entryId == 0：子分类 还是 占位卡片？----
+            val catalogueId = content?.optJSONObject("linkConfig")?.optInt("catalogueId", 0) ?: 0
+            if (catalogueId != 0) {
+                subCatalogues += WikiSubCatalogue(
+                    catalogueId = catalogueId,
+                    name = name,
+                    imageUrl = content.optString("contentUrl").takeIf { it.startsWith("http") },
+                )
+            }
+            // catalogueId 也是 0 → 真正的占位卡片，仍然丢弃（与原行为一致）
         }
+        return entries to subCatalogues
     }
 
     /**
@@ -405,10 +452,57 @@ data class WikiTagGroup(
 /** 分组下的一个可选标签（如「五星」「导电」） */
 data class WikiTag(val id: String, val name: String)
 
-/** 分类页的一次请求结果：条目 + 筛选条件树（同一个响应里出来的） */
+/** 分类页的一次请求结果：条目 + 子分类 + 筛选条件树（同一个响应里出来的） */
 data class WikiPage(
     val entries: List<WikiEntry>,
+    /**
+     * 子分类 —— 图鉴里的**中间层**（P11 补 60）。
+     *
+     * ### 为什么需要它
+     *
+     * `getPage(1384)`（养成）返回的**不是条目，而是 59 个角色子分类** ——
+     * 它们的 `entryId` 是 `null`。原来的过滤把「没有 entryId」一律当成占位卡片丢掉，
+     * 于是**整层导航消失**，界面显示「这个分类下没有条目」。
+     *
+     * ### ★ 实测数据（探针 `wiki1384.ps1`，非推测）
+     *
+     * ```
+     * getPage(1384) → 59 条
+     *   entryId != 0 :  0        ← 全部为 0
+     *   entryId == 0 : 59
+     *   invalid=true :  0        ← ★ 没有一个是占位卡片
+     * ```
+     *
+     * ### ★ 目标分类 id 在哪（这里我猜错过一次）
+     *
+     * 我原以为「子分类的 id 就是记录自己的 `id`」。**实测是错的**：
+     * 拿 `id=24235`（心）当 catalogueId 去查 → **返回 0 条**。
+     *
+     * 真正的值在更深一层：
+     * ```json
+     * "content": { "linkConfig": { "linkType": 3, "catalogueId": 1644 } }
+     * ```
+     */
+    val subCatalogues: List<WikiSubCatalogue>,
     val filterGroups: List<WikiTagGroup>,
+)
+
+/**
+ * 图鉴里的一个**子分类**（中间层，点进去才是条目）。
+ *
+ * 对应「养成 → 心 → 心这个角色下的词条」这种结构。
+ */
+data class WikiSubCatalogue(
+    /**
+     * ★ 来自 `content.linkConfig.catalogueId`。
+     *
+     * **不是**记录的 `id` 字段 —— 那个是内容卡片自己的 id，
+     * 拿它当 catalogueId 查会返回 0 条（已实测）。
+     */
+    val catalogueId: Int,
+    val name: String,
+    /** 封面图，来自 `content.contentUrl`。实测每个角色都有（如「心.png」） */
+    val imageUrl: String?,
 )
 
 data class WikiEntryDetail(

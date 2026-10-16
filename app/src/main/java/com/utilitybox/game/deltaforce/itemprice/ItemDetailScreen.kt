@@ -21,11 +21,15 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberToggleOnTap
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarkerController
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -388,6 +392,20 @@ private fun PriceChart(history: PriceHistory) {
                 rememberLineCartesianLayer(),
                 startAxis = VerticalAxis.rememberStart(),
                 bottomAxis = HorizontalAxis.rememberBottom(),
+                // ★ P11 补 56（用户要求「点击显示数值」那个浮层）：
+                //   这是 Vico 内置的能力，不用自己画。
+                //
+                //   `label` 是**必填**（编译报 No value passed for parameter 'label'）——
+                //   它是浮层上那行文字。颜色必须显式给 `textPrimary`：
+                //   用默认色在深色主题下会是黑字，浮层等于看不见。
+                marker = rememberDefaultCartesianMarker(
+                    label = rememberTextComponent(color = c.textPrimary),
+                ),
+                // ★ 交互选 `rememberToggleOnTap`（点一下显示、再点隐藏），
+                //   而不是 `rememberShowOnPress`（按住才显示）：
+                //   用户要的是"点一下看数值" —— 按住看的话，手指一松就没了，
+                //   想对着数字看两眼都做不到。
+                markerController = CartesianMarkerController.rememberToggleOnTap(),
             ),
             modelProducer = modelProducer,
             modifier = Modifier.fillMaxWidth().height(170.dp),

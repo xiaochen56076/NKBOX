@@ -392,8 +392,20 @@ private fun UbRootShell(
 
                             if (wikiEntryId != null) {
                                 SubPage(title = "图鉴词条", onBack = { navigator.back() }) {
-                                    com.utilitybox.game.wutheringwaves.WuwaWikiDetailScreen(
+                                    // ★ P11 补 64：**原生 Compose 渲染**，不再用 WebView 装官方 HTML。
+                                    //
+                                    //   用户明确要求：「重写显示信息的界面，不要用 wiki 的那种」
+                                    //   「采用苹果设计风格，相当于你要把显示框架自己做一个」。
+                                    //
+                                    //   `fallback` 是白名单一个都没命中时的退路 ——
+                                    //   宁可样式差一点，也不能给用户一个空白页。
+                                    com.utilitybox.game.wutheringwaves.WuwaWikiEntryNativeScreen(
                                         entryId = wikiEntryId,
+                                        fallback = {
+                                            com.utilitybox.game.wutheringwaves.WuwaWikiDetailScreen(
+                                                entryId = wikiEntryId,
+                                            )
+                                        },
                                     )
                                 }
                             } else if (wikiCatId != null) {

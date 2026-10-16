@@ -24,7 +24,12 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLa
 import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
 import com.patrykandpatrick.vico.compose.cartesian.marker.rememberToggleOnTap
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import androidx.compose.ui.graphics.toArgb
+import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import com.patrykandpatrick.vico.core.common.Fill
+import com.patrykandpatrick.vico.core.common.Insets
+import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -392,14 +397,23 @@ private fun PriceChart(history: PriceHistory) {
                 rememberLineCartesianLayer(),
                 startAxis = VerticalAxis.rememberStart(),
                 bottomAxis = HorizontalAxis.rememberBottom(),
-                // ★ P11 补 56（用户要求「点击显示数值」那个浮层）：
-                //   这是 Vico 内置的能力，不用自己画。
+                // ★ P11 补 57（用户：「这个浮动能不能灵动点，价格直接显示不太直观，来点背景」）：
+                //   给它一张**卡片**——圆角 + 底色 + 内边距，而不是一行裸文字浮在图上。
                 //
-                //   `label` 是**必填**（编译报 No value passed for parameter 'label'）——
-                //   它是浮层上那行文字。颜色必须显式给 `textPrimary`：
-                //   用默认色在深色主题下会是黑字，浮层等于看不见。
+                //   `rememberTextComponent` 的 `background` 参数就是干这个的：
+                //   传一个 ShapeComponent（形状 + 填充）即可。
                 marker = rememberDefaultCartesianMarker(
-                    label = rememberTextComponent(color = c.textPrimary),
+                    label = rememberTextComponent(
+                        color = c.textPrimary,
+                        background = rememberShapeComponent(
+                            // ★ Vico 的 `Fill` 收的是 Android 的 `Int` 颜色，不是 Compose 的 `Color`
+                            //   （编译报：actual type is 'Color', but 'Int' was expected）。
+                            //   所以必须显式 toArgb() 转换 —— 不能直接把 Color 传进去。
+                            fill = Fill(color = c.bgElevated.toArgb()),
+                            shape = CorneredShape.rounded(allDp = 8f),
+                        ),
+                        padding = Insets(allDp = 8f),
+                    ),
                 ),
                 // ★ 交互选 `rememberToggleOnTap`（点一下显示、再点隐藏），
                 //   而不是 `rememberShowOnPress`（按住才显示）：

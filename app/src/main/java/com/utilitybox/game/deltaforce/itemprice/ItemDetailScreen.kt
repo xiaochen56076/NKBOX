@@ -397,19 +397,19 @@ private fun PriceChart(history: PriceHistory) {
                 rememberLineCartesianLayer(),
                 startAxis = VerticalAxis.rememberStart(),
                 bottomAxis = HorizontalAxis.rememberBottom(),
-                // ★ P11 补 57（用户：「这个浮动能不能灵动点，价格直接显示不太直观，来点背景」）：
-                //   给它一张**卡片**——圆角 + 底色 + 内边距，而不是一行裸文字浮在图上。
+                // ★ P11 补 58：上一版**没有任何可见变化** —— 两次截图里文字都是**蓝色**，
+                //   而我传的是 `color = c.textPrimary`（浅色主题下应为深色）。
+                //   说明 `label` 这套参数**没有被应用到画出来的标签上**，
+                //   那么 `background` 自然也没生效。**我原来的假设是错的。**
                 //
-                //   `rememberTextComponent` 的 `background` 参数就是干这个的：
-                //   传一个 ShapeComponent（形状 + 填充）即可。
+                //   这一版换成**强对比**的深色卡片（反色 tooltip）：
+                //   即使颜色语义不对，也能一眼看出背景**到底画没画** ——
+                //   先区分"参数没生效"和"生效了但看不见"，再谈调色。
                 marker = rememberDefaultCartesianMarker(
                     label = rememberTextComponent(
-                        color = c.textPrimary,
+                        color = c.bgElevated,
                         background = rememberShapeComponent(
-                            // ★ Vico 的 `Fill` 收的是 Android 的 `Int` 颜色，不是 Compose 的 `Color`
-                            //   （编译报：actual type is 'Color', but 'Int' was expected）。
-                            //   所以必须显式 toArgb() 转换 —— 不能直接把 Color 传进去。
-                            fill = Fill(color = c.bgElevated.toArgb()),
+                            fill = Fill(color = c.textPrimary.toArgb()),
                             shape = CorneredShape.rounded(allDp = 8f),
                         ),
                         padding = Insets(allDp = 8f),

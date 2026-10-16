@@ -397,19 +397,29 @@ private fun PriceChart(history: PriceHistory) {
                 rememberLineCartesianLayer(),
                 startAxis = VerticalAxis.rememberStart(),
                 bottomAxis = HorizontalAxis.rememberBottom(),
-                // ★ P11 补 58：上一版**没有任何可见变化** —— 两次截图里文字都是**蓝色**，
-                //   而我传的是 `color = c.textPrimary`（浅色主题下应为深色）。
-                //   说明 `label` 这套参数**没有被应用到画出来的标签上**，
-                //   那么 `background` 自然也没生效。**我原来的假设是错的。**
+                // ★ P11 补 59：用户要「高斯模糊效果」。
                 //
-                //   这一版换成**强对比**的深色卡片（反色 tooltip）：
-                //   即使颜色语义不对，也能一眼看出背景**到底画没画** ——
-                //   先区分"参数没生效"和"生效了但看不见"，再谈调色。
+                // ### ★ 先说清做不到什么
+                //
+                // **真正的背景高斯模糊（backdrop blur）在这里做不到。**
+                // 高斯模糊必须**采样背后已经画好的像素** —— 那正是 Haze 的能力，
+                // 而 Haze 作用于 **Composable**。
+                // Vico 的浮层画在 **Canvas** 里，拿不到"背后的位图"，所以套不上 Haze。
+                //
+                // ### 能做的是**半透明磨砂**
+                //
+                // 把填充色加上 alpha，纸面上就"透出"下面的折线 ——
+                // 观感接近毛玻璃，但**它是半透明，不是模糊**：
+                // 背后的线是**清晰**透出来的，不会糊。
+                // 这个区别我不含糊过去。
+                //
+                // alpha 取 0.72：再低会让折线穿卡而过、数字读不清；
+                // 再高就退回成纯色卡片了。
                 marker = rememberDefaultCartesianMarker(
                     label = rememberTextComponent(
                         color = c.bgElevated,
                         background = rememberShapeComponent(
-                            fill = Fill(color = c.textPrimary.toArgb()),
+                            fill = Fill(color = c.textPrimary.copy(alpha = 0.72f).toArgb()),
                             shape = CorneredShape.rounded(allDp = 8f),
                         ),
                         padding = Insets(allDp = 8f),

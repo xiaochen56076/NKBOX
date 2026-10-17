@@ -531,8 +531,19 @@ fun WuwaWikiCharWeaponScreen(
     val catId = if (tab == 0) CAT_ROLE else CAT_WEAPON
 
     var entries by remember(catId) { mutableStateOf<List<WikiEntry>>(emptyList()) }
+    // ★ P11 补 73：**筛选**（用户：「这里面加上筛选呀，之前加过的」）。
+    //
+    //   这里确实漏了 —— P11 补 45 把「角色/武器」合并成这一个页面时，
+    //   筛选没有从 `WuwaWikiEntriesScreen` 带过来，于是这一页只剩浏览。
+    //   现在把同一套（筛选条件树 + 已选条件 + 底部弹层）补齐。
+    var filterGroups by remember(catId) { mutableStateOf<List<WikiTagGroup>>(emptyList()) }
     var loading by remember(catId) { mutableStateOf(true) }
     var error by remember(catId) { mutableStateOf<String?>(null) }
+    var applied by remember(catId) { mutableStateOf<Map<Int, Set<String>>>(emptyMap()) }
+    var sheetOpen by remember(catId) { mutableStateOf(false) }
+
+    // ★ 纯函数过滤，逻辑见 WikiFilter.kt（有 11 条单元测试钉住语义）
+    val filtered = remember(entries, applied) { filterWikiEntries(entries, applied) }
 
     LaunchedEffect(catId) {
         loading = true
@@ -540,6 +551,7 @@ fun WuwaWikiCharWeaponScreen(
         when (val r = KuroWikiApi.page(catId)) {
             is WikiResult.Ok -> {
                 entries = r.value.entries
+                filterGroups = r.value.filterGroups
                 loading = false
             }
             is WikiResult.Failure -> {
@@ -547,6 +559,17 @@ fun WuwaWikiCharWeaponScreen(
                 loading = false
             }
         }
+    }
+
+    // 筛选面板（底部弹层）—— 浮层，与列表布局无关，所以放在 Column 外面
+    if (sheetOpen) {
+        WikiFilterSheet(
+            // 「实装版本」隐藏：产品决策，数据仍在模型里
+            groups = filterGroups.filterNot { it.name == HIDDEN_FILTER_GROUP },
+            applied = applied,
+            onDismiss = { sheetOpen = false },
+            onApply = { applied = it },
+        )
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -559,8 +582,22 @@ fun WuwaWikiCharWeaponScreen(
             UbChip(label = "角色", selected = tab == 0, onClick = { tab = 0 })
             UbChip(label = "武器", selected = tab == 1, onClick = { tab = 1 })
             Spacer(Modifier.weight(1f))
+            // ★ P11 补 73：筛选入口。有条件时高亮，一眼看得出"正在筛选"
+            if (filterGroups.isNotEmpty()) {
+                UbChip(
+                    label = if (applied.isEmpty()) "筛选" else "筛选 · ${selectedTagCount(applied)}",
+                    selected = applied.isNotEmpty(),
+                    onClick = { sheetOpen = true },
+                )
+                Spacer(Modifier.width(s.s))
+            }
             Text(
-                text = if (loading) "加载中…" else "${entries.size} 个",
+                // 有筛选时显示「筛后/总数」，让用户知道被过滤掉多少
+                text = when {
+                    loading -> "加载中…"
+                    applied.isEmpty() -> "${entries.size} 个"
+                    else -> "${filtered.size} / ${entries.size} 个"
+                },
                 style = t.caption,
                 color = c.textTertiary,
                 modifier = Modifier.align(Alignment.CenterVertically),
@@ -599,7 +636,9 @@ fun WuwaWikiCharWeaponScreen(
             ) {
                 // ★ key 里带上 tab —— 否则 LazyVerticalGrid 会复用上一个 tab 的
                 //   滚动位置与 item 身份，切换后会出现"内容换了但位置还在半空"
-                items(entries, key = { "${tab}_${it.entryId}" }) { e ->
+                //
+                // ★ P11 补 73：渲染 `filtered`（筛选后）而不是 `entries`（全部）
+                items(filtered, key = { "${tab}_${it.entryId}" }) { e ->
                     WikiEntryCard(
                         entry = e,
                         // ★ 属性名传 null：属性筛选在「条目列表」页才做（那边有接口给的

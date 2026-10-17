@@ -307,6 +307,25 @@ private fun UbRootShell(
                     // ★★ 这里的 `route` 是 **AnimatedContent 的槽位状态**，不是 navigator.current：
                     //   转场期间两个槽位各拿一个状态，旧页槽可能是折叠值 GAME_PAGER。
                     //   详见 UbNavHost 内容 lambda 上的说明（它就是「重影」的修复点）。
+                    // ★★ P11 补 76：**「角色与武器」页的状态必须放在 `UbNavHost` 之外**。
+                    //
+                    //   `UbNavHost` 内部是 AnimatedContent —— 它的 content lambda
+                    //   **按目标 route 重新组合**，所以写在里面的 `remember` 每次换路由都会重建。
+                    //   实测：从详情页返回后 tab 和滚动位置全丢（用户反馈「全部都重置了」）。
+                    //
+                    //   放到这里（AnimatedContent 之外）：
+                    //   · 详情页压栈 → 这个 remember 不受影响，状态还在 ✓
+                    //   · 退回图鉴分类页 → key 变 false → 实例丢弃 → 再进来自动重置 ✓
+                    //
+                    //   ★ key 用 `navigator.current`（真实路由），**不是**槽位 route ——
+                    //     后者在转场期间会滞后（参见下面 UbNavHost 的注释）。
+                    val inWikiListBranch =
+                        navigator.current.startsWith(UbRoutes.PREFIX_WIKI_CAT) ||
+                            navigator.current.startsWith(UbRoutes.PREFIX_WIKI_ENTRY)
+                    val charWeaponUiState = remember(inWikiListBranch) {
+                        com.utilitybox.game.wutheringwaves.CharWeaponUiState()
+                    }
+
                     UbNavHost(navigator = navigator, modifier = Modifier.fillMaxWidth()) { route ->
                         // ★ 工具页面统一由注册表按路由分发 —— 这里**没有**任何具体工具的分支。
                         //   新增工具时本文件不需要改（docs/architecture.md §4.4 的验收标准）。
@@ -419,6 +438,7 @@ private fun UbRootShell(
                                 if (wikiCatId == com.utilitybox.game.wutheringwaves.MERGED_CHAR_WEAPON.toString()) {
                                     SubPage(title = "角色与武器", onBack = { navigator.back() }) {
                                         com.utilitybox.game.wutheringwaves.WuwaWikiCharWeaponScreen(
+                                            uiState = charWeaponUiState,
                                             onOpenEntry = { entryId, _ ->
                                                 navigator.navigate(UbRoutes.wuwaWikiEntry(entryId))
                                             },

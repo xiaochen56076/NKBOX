@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -517,8 +518,67 @@ private fun categoryIcon(name: String): UbIcon = when {
  * ★ 两个分类的条目**分别请求、分别缓存**（`KuroWikiApi.page` 内部按 catalogueId 缓存），
  *   所以切 chip 不会重新打网络 —— 首屏只等当前选中的那一个。
  */
+/**
+ * 「角色与武器」页的 UI 状态（P11 补 74 / 75）。
+ *
+ * ### 用户报的 bug
+ *
+ * > 「如果从某个角色或者武器界面返回来，之前在那里的状态就会重置到角色且是第一排」
+ *
+ * 然后又纠正了边界：
+ * > 「退出图鉴，必须重置状态…这个是合理的交互逻辑」
+ *
+ * ### 正确的生命周期
+ *
+ * | 动作 | 状态 |
+ * |---|---|
+ * | 角色与武器 → 点开详情 → 返回 | **保留**（tab / 筛选 / 滚动位置） |
+ * | 角色与武器 → 退回分类页 → 再进来 | **重置** |
+ *
+ * ### ★ 为什么是普通 class 而不是 object 单例
+ *
+ * 一开始我用了**进程级单例**，结果状态"活得太久" ——
+ * 退出图鉴再进来也还留着，不符合"退出就该干净重来"。
+ *
+ * 所以改成**实例**，由 `MainActivity` 按路由分支创建：
+ * ```
+ * 在 wiki/cat/… 或 wiki/entry/… 下 → 复用同一实例（详情页压栈时状态还在）
+ * 回到 wuwa/wiki（分类页）        → 这个实例被丢弃（退出即重置）
+ * ```
+ * **状态的寿命 = 这一屏的寿命**，不多不少。
+ *
+ * ★ 注意：KDoc 里**不能出现「斜杠加星号」这个两字符序列** ——
+ *   Kotlin 的块注释是可嵌套的，写了就等于开了一个嵌套注释，
+ *   把后续代码全吞掉（真踩过：整个文件报 `Unclosed comment`）。
+ *   所以路径一律用省略号写法。
+ */
+class CharWeaponUiState {
+    /** 0 = 角色，1 = 武器 */
+    var tab by mutableStateOf(0)
+
+    /** 每个分类各自的筛选条件（切 tab 不能串） */
+    private val appliedByCat = mutableMapOf<Int, MutableState<Map<Int, Set<String>>>>()
+
+    fun appliedState(catId: Int): MutableState<Map<Int, Set<String>>> =
+        appliedByCat.getOrPut(catId) { mutableStateOf(emptyMap()) }
+
+    /**
+     * 每个分类各自的网格滚动状态。
+     *
+     * ★ 必须是**同一个 `LazyGridState` 实例**才能在回来时恢复到原来的位置 ——
+     *   重建一个新的只会回到顶部（这正是"回到第一排"的直接原因）。
+     */
+    private val gridByCat =
+        mutableMapOf<Int, androidx.compose.foundation.lazy.grid.LazyGridState>()
+
+    fun gridState(catId: Int): androidx.compose.foundation.lazy.grid.LazyGridState =
+        gridByCat.getOrPut(catId) { androidx.compose.foundation.lazy.grid.LazyGridState() }
+}
+
 @Composable
 fun WuwaWikiCharWeaponScreen(
+    // ★ 由 MainActivity 按路由分支持有 —— 详情页压栈时复用，退回分类页时丢弃
+    uiState: CharWeaponUiState,
     onOpenEntry: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -527,8 +587,11 @@ fun WuwaWikiCharWeaponScreen(
     val t = LocalUbTypography.current
 
     // 0 = 角色，1 = 武器
-    var tab by remember { mutableStateOf(0) }
+    // ★ P11 补 74：初值从进程级状态读 —— 返回时停在原 tab
+    var tab by remember { mutableStateOf(uiState.tab) }
     val catId = if (tab == 0) CAT_ROLE else CAT_WEAPON
+    // 记回这一屏的状态，供详情页返回时恢复
+    LaunchedEffect(tab) { uiState.tab = tab }
 
     var entries by remember(catId) { mutableStateOf<List<WikiEntry>>(emptyList()) }
     // ★ P11 补 73：**筛选**（用户：「这里面加上筛选呀，之前加过的」）。
@@ -539,8 +602,14 @@ fun WuwaWikiCharWeaponScreen(
     var filterGroups by remember(catId) { mutableStateOf<List<WikiTagGroup>>(emptyList()) }
     var loading by remember(catId) { mutableStateOf(true) }
     var error by remember(catId) { mutableStateOf<String?>(null) }
-    var applied by remember(catId) { mutableStateOf<Map<Int, Set<String>>>(emptyMap()) }
+    // ★ P11 补 74：筛选条件跨导航保留（按分类分开存，切 tab 不串）
+    val appliedState = remember(catId) { uiState.appliedState(catId) }
+    var applied by appliedState
     var sheetOpen by remember(catId) { mutableStateOf(false) }
+
+    // ★ P11 补 74：**网格滚动位置**跨导航保留 —— 必须复用同一个 LazyGridState 实例，
+    //   新建一个只会回到顶部。
+    val gridState = remember(catId) { uiState.gridState(catId) }
 
     // ★ 纯函数过滤，逻辑见 WikiFilter.kt（有 11 条单元测试钉住语义）
     val filtered = remember(entries, applied) { filterWikiEntries(entries, applied) }
@@ -625,6 +694,8 @@ fun WuwaWikiCharWeaponScreen(
             }
             else -> androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
                 columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                // ★ P11 补 74：复用进程级的网格状态 —— 返回时恢复原来的滚动位置
+                state = gridState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                     start = s.screenH,

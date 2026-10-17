@@ -24,6 +24,9 @@ class UbApplication : Application() {
         // 注册表自检：工具 id 唯一、路由唯一且非空、gameId 已注册
         UbToolRegistry.verifyIntegrity()
 
+        // ★ P11 补 77：鸣潮页的界面开关（「登录入口」显示与否）从持久化读回
+        com.utilitybox.game.wutheringwaves.WuwaUiSettings.install(this)
+
         // API Key：用户在设置页输入的值优先，构建期注入值兜底
         ApiKeyProvider.init(
             context = this,

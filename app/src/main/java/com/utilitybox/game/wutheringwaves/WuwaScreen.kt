@@ -157,9 +157,13 @@ private fun WuwaLogin(
         )
         Spacer(Modifier.height(s.l))
 
-        SectionCard {
-            Column(modifier = Modifier.padding(s.cardPad)) {
-                Text(text = "手机号登录", style = t.bodyLarge, color = c.textPrimary)
+        // ★ P11 补 77：登录区块可隐藏（设置 → 工具管理 → 登录入口）。
+        //   原因：库街区登录受极验拦截，这个表单填了也不会成功；
+        //   让用户能藏起来，比摆一个永远失败的表单好。
+        if (WuwaUiSettings.showLoginEntry) {
+            SectionCard {
+                Column(modifier = Modifier.padding(s.cardPad)) {
+                    Text(text = "手机号登录", style = t.bodyLarge, color = c.textPrimary)
                 Text(
                     text = "验证码由库街区发送，登录后官方 App 会被挤下线",
                     style = t.caption,
@@ -218,6 +222,7 @@ private fun WuwaLogin(
                     enabled = !state.loggingIn && state.mobile.length == 11 && state.smsCode.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                }
             }
         }
 

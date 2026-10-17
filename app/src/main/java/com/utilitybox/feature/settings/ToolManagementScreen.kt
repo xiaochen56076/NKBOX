@@ -76,6 +76,34 @@ fun ToolManagementScreen(modifier: Modifier = Modifier) {
             }
         }
 
+        // ★★ P11 补 77：**界面开关**（不是工具）。
+        //
+        //   用户要求「先在设置里面加一个开关来隐藏登录那个板块，放到工具管理里面去，叫登录入口」。
+        //
+        //   为什么它不是工具：工具是"一个可进入的功能页"，而这是"要不要显示某块 UI"。
+        //   放进工具注册表会污染 `UbToolRegistry` 的语义（那里还要校验路由一致性）。
+        //   所以单独一张卡放在这里 —— 位置按用户要求，语义保持干净。
+        //
+        //   为什么需要它：库街区登录被极验挡住（`geeTestData` 拿不到 → 短信不发），
+        //   那个登录表单**填了也不会成功**。能让用户藏起来比摆着更好。
+        SectionCard(title = "鸣潮") {
+            Column {
+                UbSettingRow(
+                    title = "登录入口",
+                    subtitle = "登录受极验拦截，暂不可用；关闭可隐藏登录区块",
+                    trailing = {
+                        Switch(
+                            checked = com.utilitybox.game.wutheringwaves.WuwaUiSettings.showLoginEntry,
+                            onCheckedChange = {
+                                com.utilitybox.game.wutheringwaves.WuwaUiSettings.updateShowLoginEntry(it)
+                            },
+                            colors = SwitchDefaults.colors(checkedTrackColor = c.accent),
+                        )
+                    },
+                )
+            }
+        }
+
         Text(
             text = "关掉的工具会从对应游戏页隐藏。新增工具默认开启。",
             style = t.caption,

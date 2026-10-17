@@ -151,7 +151,7 @@ private fun WuwaLogin(
     ) {
         // ★ P11 补 22：原来的「鸣潮」文字标题换成身份卡，与三角洲页对称
         WuwaHero(
-            meta = "图鉴与唤取记录无需登录 · 绑定账号后可看角色数据",
+            meta = "图鉴与唤取记录 · 绑定账号后可看角色数据",
             nextName = nextName,
             onSwitch = onSwitch,
         )
@@ -231,14 +231,14 @@ private fun WuwaLogin(
                     title = "鸣潮图鉴",
                     icon = UbIcon.Database,
                     onClick = onOpenWiki,
-                    trailingText = "无需登录",
+                    trailingText = "",
                 )
                 UbDivider()
                 UbNavRow(
                     title = "唤取记录",
                     icon = UbIcon.Clock,
                     onClick = onOpenGacha,
-                    trailingText = "无需登录",
+                    trailingText = "",
                 )
             }
         }
@@ -452,14 +452,14 @@ private fun WuwaDashboard(
                             title = "鸣潮图鉴",
                             icon = UbIcon.Database,
                             onClick = onOpenWiki,
-                            trailingText = "无需登录",
+                            trailingText = "",
                         )
                         UbDivider()
                         UbNavRow(
                             title = "唤取记录",
                             icon = UbIcon.Clock,
                             onClick = onOpenGacha,
-                            trailingText = "无需登录",
+                            trailingText = "",
                         )
                         UbDivider()
                         UbNavRow(

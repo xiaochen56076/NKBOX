@@ -256,20 +256,21 @@ fun WuwaWikiCategoriesScreen(onOpenCategory: (Int, String) -> Unit, modifier: Mo
                         }
                     }
                 }
-                item(
-                    key = "footer",
-                    span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) },
-                ) {
-                    Column {
-                        UbSourceFooter(source = "库街区公开图鉴接口", updatedAt = "实时")
-                        Text(
-                            text = "内容由库街区 WIKI 提供，非官方接口。",
-                            style = t.caption,
-                            color = c.textTertiary,
-                            modifier = Modifier.padding(horizontal = s.s, vertical = s.s),
-                        )
-                    }
-                }
+                // ★ P11 补 72：**去掉了页脚的来源声明**（用户要求）。
+                //
+                //   原来这一块是：
+                //     「来源：库街区公开图鉴接口 · 更新 实时」
+                //     「内容由库街区 WIKI 提供，非官方接口。」
+                //
+                //   ★ 记一下这条的性质：它**不是**普通文案，而是
+                //     **数据来源声明** —— 项目红线要求「不得伪造数据源」，
+                //     这一行就是"数据来自库街区"的说明。删掉**不违反红线**
+                //     （没有编造来源），但透明度少了一层。
+                //
+                //   用户明确要求去掉，所以去掉。**数据本身仍然是库街区的**，
+                //   接口调用位置（`KuroWikiApi`）和代码注释里的出处说明都还在。
+                //
+                //   要恢复：把这个 item 加回来即可。
             }
         }
     }

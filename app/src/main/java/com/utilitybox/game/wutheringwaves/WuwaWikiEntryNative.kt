@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -347,10 +348,30 @@ private fun TableCard(title: String, block: WikiTable.Block.Table) {
 
     SectionCard(title = title.ifBlank { "详情" }) {
         Column(verticalArrangement = Arrangement.spacedBy(s.xs)) {
-            block.rows.forEach { row ->
+            block.rows.forEachIndexed { rowIndex, row ->
+                // ★★ P11 补 70（用户：「ui 组件应该不止那些方块啥的吧，
+                //   应该还是有更加好看的组件」）：
+                //
+                //   原来每个单元格都是一个**圆角胶囊块**（clip + background + padding），
+                //   一屏几十个方块，看起来像一堆标签，层次全糊在一起。
+                //
+                //   改成 **iOS 设置页那种「行 + 发丝分割线」**：
+                //   · 单元格不再有底色和圆角，只是排版单元
+                //   · 行与行之间一条 1dp 线 —— 分隔靠**留白和线**，不靠色块
+                //   · 只有官方**本来就有底色**的格子（`shaded`）保留一层淡 tint，
+                //     那代表原文的强调，不是我自己刷的样式
+                if (rowIndex > 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = s.xs)
+                            .background(c.divider)
+                            .height(1.dp),
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(s.xs),
+                    horizontalArrangement = Arrangement.spacedBy(s.s),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     row.cells.forEach { cell ->
@@ -358,12 +379,17 @@ private fun TableCard(title: String, block: WikiTable.Block.Table) {
                         androidx.compose.foundation.layout.FlowRow(
                             modifier = Modifier
                                 .weight(weight)
-                                .clip(RoundedCornerShape(r.button))
-                                // ★ 用 `shaded`（原 HTML 的 background-color）决定底色，
-                                //   而不是自己按行列奇偶涂色 —— 那是**编样式**，
-                                //   官方标了底色的格子才是有含义的（比如高亮某项）
-                                .background(if (cell.shaded) c.bgSubtle else Color.Transparent)
-                                .padding(horizontal = s.s, vertical = s.xs),
+                                .then(
+                                    if (cell.shaded) {
+                                        Modifier
+                                            .clip(RoundedCornerShape(r.button))
+                                            .background(c.bgSubtle)
+                                            .padding(horizontal = s.xs, vertical = 2.dp)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .padding(vertical = s.xs),
                             horizontalArrangement = Arrangement.spacedBy(s.xs),
                             verticalArrangement = Arrangement.spacedBy(s.xs),
                         ) {

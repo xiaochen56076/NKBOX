@@ -392,20 +392,25 @@ private fun UbRootShell(
 
                             if (wikiEntryId != null) {
                                 SubPage(title = "图鉴词条", onBack = { navigator.back() }) {
-                                    // ★ P11 补 64：**原生 Compose 渲染**，不再用 WebView 装官方 HTML。
+                                    // ★★ P11 补 71：**换回官方 wiki 的 WebView 界面**（用户决定）。
                                     //
-                                    //   用户明确要求：「重写显示信息的界面，不要用 wiki 的那种」
-                                    //   「采用苹果设计风格，相当于你要把显示框架自己做一个」。
+                                    //   原生 Compose 版本已做完并**完整备份在 git tag `001`**
+                                    //   （commit 7ac9802，含 1级~90级面板、一阶~六阶突破材料、
+                                    //   行分割线排版）。
                                     //
-                                    //   `fallback` 是白名单一个都没命中时的退路 ——
-                                    //   宁可样式差一点，也不能给用户一个空白页。
-                                    com.utilitybox.game.wutheringwaves.WuwaWikiEntryNativeScreen(
+                                    //   换回来的原因（原生版的两个遗留问题）：
+                                    //   · 「身份/所属」那些键仍是胶囊块 —— `shaded` 在原 HTML 里
+                                    //     是**隔行底色**（纯装饰），我把它当成"有含义的强调"保留，
+                                    //     这个判断是错的；
+                                    //   · 「女 / 未知 / 音感仪 / 导电」那行丢了键名 ——
+                                    //     它们在原表里是**同一行的四个单元格**，
+                                    //     我按整行渲染，键值对应关系就散了。
+                                    //
+                                    //   ★ 原生版代码**仍在仓库里**（`WuwaWikiEntryNativeScreen`），
+                                    //     **没有删**。要恢复：把这里换回去，或
+                                    //     `git checkout 001 -- .` 整体回到那一刻 —— 不用重写。
+                                    com.utilitybox.game.wutheringwaves.WuwaWikiDetailScreen(
                                         entryId = wikiEntryId,
-                                        fallback = {
-                                            com.utilitybox.game.wutheringwaves.WuwaWikiDetailScreen(
-                                                entryId = wikiEntryId,
-                                            )
-                                        },
                                     )
                                 }
                             } else if (wikiCatId != null) {

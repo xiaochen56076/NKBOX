@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.utilitybox.core.design.*
 
 /**
@@ -205,14 +206,22 @@ private fun IntervalPickerDialog(
     // 常用档位。★ 不再只用这四档 —— 用户要的是**自定义**。
     val presets = listOf(5, 15, 30, 60, 120, 240)
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = s.screenH, vertical = s.s)
-            .clip(RoundedCornerShape(r.card))
-            .background(c.bgElevated)
-            .padding(s.cardPad),
-    ) {
+    // ★★ P11 补 95：改成**真正的弹窗**（`Dialog`）。
+    //
+    //   原来是"行内展开"：`if (showPicker) { IntervalPickerDialog(...) }` 直接插在页面流里，
+    //   没有遮罩、没有层次，看起来就是页面上多了一块卡片，还把下面的内容顶下去
+    //   （用户反馈：「这种弹出来的界面不应该有一个背景阴影层次吗？」）。
+    //
+    //   `Dialog` 自带**平台遮罩**（背后压暗 + 点外部关闭），
+    //   这才是"弹出来"该有的语义：底下的页面还在，只是被压暗、不可交互。
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(r.cardLarge))
+                .background(c.bgElevated)
+                .padding(s.cardPad),
+        ) {
         Column(verticalArrangement = Arrangement.spacedBy(s.s)) {
             Text(text = "刷新间隔", style = t.titleMedium, color = c.textPrimary)
 
@@ -270,5 +279,6 @@ private fun IntervalPickerDialog(
                 }
             }
         }
+        }   // ← Dialog 的花括号（P11 补 95 新增的一层）
     }
 }

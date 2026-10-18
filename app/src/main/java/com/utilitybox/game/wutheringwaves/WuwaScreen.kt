@@ -166,14 +166,10 @@ private fun WuwaLogin(
         //   原因：库街区登录受极验拦截，这个表单填了也不会成功；
         //   让用户能藏起来，比摆一个永远失败的表单好。
         if (WuwaUiSettings.showLoginEntry) {
-            // ★ P11 补 82：补横向边距，与英雄卡对齐（用户指出「没有好好对齐」）。
-            //   实测：原来内容区没有 screenH 边距 → 整块贴屏幕左缘，
-            //   比英雄卡靠左 105px。现在统一到 `s.screenH`。
-            SectionCard(
-                modifier = Modifier
-                    .padding(horizontal = s.screenH)
-                    .ubEnter(index = 1),
-            ) {
+            // ★ P11 补 83：**不要再加 `padding(horizontal = s.screenH)`** ——
+            //   `SectionCard` 内部自带一份 screenH，外面再加就是双重缩进（64+64=128px），
+            //   卡片会比上面的英雄卡左右各窄 64px（用户圈出来说没对齐）。
+            SectionCard(modifier = Modifier.ubEnter(index = 1)) {
                 Column(modifier = Modifier.padding(s.cardPad)) {
                     Text(text = "手机号登录", style = t.bodyLarge, color = c.textPrimary)
                 Text(

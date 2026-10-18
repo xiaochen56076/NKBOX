@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.Dp
 
 /**
  * 分组卡片：页面内容的基本视觉单位。
@@ -35,14 +36,38 @@ import androidx.compose.ui.draw.clip
 fun SectionCard(
     title: String? = null,
     modifier: Modifier = Modifier,
+    /**
+     * 横向外边距（P11 补 83）。
+     *
+     * ### 为什么需要这个参数
+     *
+     * `SectionCard` **自带** `padding(horizontal = s.screenH)` —— 这在普通页面里是对的：
+     * 调用方什么都不用做，卡片就自然左右留出屏边距。
+     *
+     * 但如果调用方**所在容器已经加了 screenH**（例如 `LazyVerticalGrid` 的
+     * `contentPadding`、或外层 `Modifier.padding(horizontal = s.screenH)`），
+     * 就会变成**双重缩进（64+64=128px）**，卡片比同页的英雄卡窄一圈。
+     * 实测症状：首页「今日密码」摘要卡和鸣潮「手机号登录」卡
+     * 都比英雄卡左右各缩进 64px（用户圈出来说「没有对齐」）。
+     *
+     * 传 `0.dp` 即可与已加边的父容器对齐。
+     *
+     * ### 默认值
+     *
+     * `Dp.Unspecified` 表示"用默认的 `s.screenH`"。
+     * 不能用 `s.screenH` 直接做默认值 —— 默认参数只求值一次，
+     * 而 `LocalUbSpacing` 是组合局部变量，必须在使用处读取。
+     */
+    horizontalPadding: Dp = Dp.Unspecified,
     content: @Composable () -> Unit,
 ) {
     val c = LocalUbColors.current
     val s = LocalUbSpacing.current
     val t = LocalUbTypography.current
+    val edge = if (horizontalPadding == Dp.Unspecified) s.screenH else horizontalPadding
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = s.screenH),
+        modifier = modifier.fillMaxWidth().padding(horizontal = edge),
         verticalArrangement = Arrangement.spacedBy(s.xs),
     ) {
         if (title != null) {

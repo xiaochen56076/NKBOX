@@ -60,7 +60,13 @@ fun DailyCodeSummaryRow(modifier: Modifier = Modifier) {
     val state = holder.state
     val biz: DailyCodeState? = (state as? UiState.Success)?.data
 
-    SectionCard(modifier = modifier) {
+    SectionCard(
+        modifier = modifier,
+        // ★ P11 补 83：这个卡片放在**首页网格**里，网格的 `contentPadding` 已经加了
+        //   `s.screenH`；而 `SectionCard` 自己也带一份 screenH —— 不置 0 就是
+        //   **双重缩进**，卡片会比上面的英雄卡左右各窄 64px（用户圈出来说没对齐）。
+        horizontalPadding = 0.dp,
+    ) {
         Column(modifier = Modifier.padding(horizontal = s.cardPad, vertical = s.m)) {
             // ---- 标题行 ----
             Row(verticalAlignment = Alignment.CenterVertically) {

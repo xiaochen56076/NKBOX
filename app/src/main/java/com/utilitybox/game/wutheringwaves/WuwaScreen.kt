@@ -150,18 +150,23 @@ private fun WuwaLogin(
             .padding(bottom = LocalUbSize.current.bottomBarReserved),
     ) {
         // ★ P11 补 22：原来的「鸣潮」文字标题换成身份卡，与三角洲页对称
-        WuwaHero(
-            meta = "图鉴与唤取记录 · 绑定账号后可看角色数据",
-            nextName = nextName,
-            onSwitch = onSwitch,
-        )
+        // ★ P11 补 81：与三角洲页一致的**入场动画**（`Modifier.ubEnter`）。
+        //   用户要求「鸣潮那边的界面应该和三角洲的排版差不多，同时要有动画效果」。
+        //   三角洲页的卡片按 index 错峰淡入上移，这里用同一套，index 顺序即视觉顺序。
+        Box(modifier = Modifier.ubEnter(index = 0)) {
+            WuwaHero(
+                meta = "图鉴与唤取记录 · 绑定账号后可看角色数据",
+                nextName = nextName,
+                onSwitch = onSwitch,
+            )
+        }
         Spacer(Modifier.height(s.l))
 
         // ★ P11 补 77：登录区块可隐藏（设置 → 工具管理 → 登录入口）。
         //   原因：库街区登录受极验拦截，这个表单填了也不会成功；
         //   让用户能藏起来，比摆一个永远失败的表单好。
         if (WuwaUiSettings.showLoginEntry) {
-            SectionCard {
+            SectionCard(modifier = Modifier.ubEnter(index = 1)) {
                 Column(modifier = Modifier.padding(s.cardPad)) {
                     Text(text = "手机号登录", style = t.bodyLarge, color = c.textPrimary)
                 Text(
@@ -248,7 +253,7 @@ private fun WuwaLogin(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(s.m),
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.weight(1f).ubEnter(index = 2)) {
                 UbToolCard(
                     title = "鸣潮图鉴",
                     subtitle = "角色与武器",
@@ -258,7 +263,7 @@ private fun WuwaLogin(
                     onClick = onOpenWiki,
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.weight(1f).ubEnter(index = 3)) {
                 UbToolCard(
                     title = "唤取记录",
                     subtitle = "抽卡历史",
@@ -273,7 +278,7 @@ private fun WuwaLogin(
         Spacer(Modifier.height(s.s))
 
         // ★ 风险说明。不是走过场 —— 用户需要知道自己的凭据被怎么对待。
-        SectionCard {
+        SectionCard(modifier = Modifier.ubEnter(index = 4)) {
             Column(modifier = Modifier.padding(s.cardPad)) {
                 Text(text = "关于账号安全", style = t.bodyMedium, color = c.textPrimary)
                 Spacer(Modifier.height(s.xs))

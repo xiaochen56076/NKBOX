@@ -19,6 +19,7 @@ import com.utilitybox.core.design.LocalUbTypography
 import com.utilitybox.core.design.SectionCard
 import com.utilitybox.core.design.UbIcon
 import com.utilitybox.core.design.UbIcons
+import com.utilitybox.domain.model.AppError
 import com.utilitybox.domain.model.DailyCodeState
 import com.utilitybox.domain.model.UiState
 
@@ -117,7 +118,22 @@ fun DailyCodeSummaryRow(modifier: Modifier = Modifier) {
 
                 biz is DailyCodeState.NoDataForToday -> Hint("今日密码尚未发布", c.textTertiary)
 
-                biz is DailyCodeState.Failed -> Hint("今日密码加载失败，点进工具页可重试", c.danger)
+                // ★ P11 补 80：**区分"没绑 API"和"真的失败"**（用户要求）。
+                //
+                //   原来一律显示红字「加载失败」—— 但没绑 API 不是故障，
+                //   是**还没配置**。红色错误会让人以为 App 坏了，
+                //   而正确的下一步只是"去设置里填个 Key"。
+                //   所以：没绑 → 中性提示 + 告诉去哪绑；Key 无效 → 警示色；其它 → 才是红色故障。
+                biz is DailyCodeState.Failed -> when (biz.error) {
+                    AppError.ApiKeyMissing ->
+                        Hint("请绑定 API（设置 → API Key）", c.textTertiary)
+
+                    AppError.Unauthorized ->
+                        Hint("API Key 无效或已过期，请到设置里更新", c.warning)
+
+                    else ->
+                        Hint("今日密码加载失败，点进工具页可重试", c.danger)
+                }
 
                 else -> Hint("加载中…", c.textTertiary)
             }

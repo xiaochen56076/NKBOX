@@ -80,7 +80,10 @@ fun GameToolsScreen(
 
     // ★ 统计从注册表**实际数**出来，不写死。写死的数字会随工具增减变成假话
     //   （P09 实测踩过：界面写着"2 个可用 · 1 个开发中"，实际有 4 个工具）。
-    val all = UbToolRegistry.toolsOf(gameId)
+    // ★ P11 补 80：用 `visibleToolsOf` 而不是 `toolsOf` —— 今日密码已移到首页摘要区，
+    //   列表里不再有它的卡片，所以这里的计数也必须排除它，否则会出现
+    //   "写着 5 个工具、网格里只有 4 张卡"的假话。
+    val all = UbToolRegistry.visibleToolsOf(gameId)
     val enabledCount = all.count { it.status == ToolStatus.ENABLED }
     val experimentalCount = all.count { it.status == ToolStatus.EXPERIMENTAL }
     val pendingCount = all.count {

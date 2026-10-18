@@ -55,8 +55,32 @@ object UbToolRegistry {
         @Suppress("UNUSED_EXPRESSION")
         com.utilitybox.core.settings.UbSettingsState.toolsRevision
 
-        return toolsOf(gameId).filterNot { isDisabled(it.id) }
+        val hidden = hiddenFromToolList()
+        return toolsOf(gameId).filterNot { isDisabled(it.id) || it.id in hidden }
     }
+
+    /**
+     * 首页要显示的"工具总数"（P11 补 80）。
+     *
+     * ★ 与 [toolsOf] 的区别：**排除** `showInToolList = false` 的工具
+     *   （今日密码 —— 它的信息已经显示在首页摘要区了）。
+     *   首页身份卡的「N 个工具 · M 个可用」必须和网格里**实际看得到的卡**对得上，
+     *   否则会出现"写着 5 个工具、数出来只有 4 张卡"的假话。
+     */
+    fun visibleToolsOf(gameId: String): List<ToolDescriptor> {
+        @Suppress("UNUSED_EXPRESSION")
+        com.utilitybox.core.settings.UbSettingsState.toolsRevision
+
+        val hidden = hiddenFromToolList()
+        return toolsOf(gameId).filterNot { it.id in hidden }
+    }
+
+    /** 声明了「不出现在工具列表」的工具 id 集合 */
+    private fun hiddenFromToolList(): Set<String> =
+        AppContainer.providers
+            .filter { !it.showInToolList }
+            .map { it.descriptor.id }
+            .toSet()
 
     /**
      * 用户是否显式关闭了某工具。

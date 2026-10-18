@@ -190,15 +190,30 @@ class UbToolRegistryTest {
             "首页出现了非激活游戏的工具: ${home.filter { it.gameId != active.id }.map { it.id }}",
             home.all { it.gameId == active.id },
         )
+        // ★ P11 补 80：`homeTools` **不再等于 `toolsOf`**。
+        //
+        //   有两类**合法的**过滤（都不是 bug）：
+        //   ① 用户在「工具管理」里显式关掉的（P09 起就有的行为）；
+        //   ② 声明了 `showInToolList = false` 的工具 —— 它的信息已经显示在
+        //      首页摘要区（`homeSummary`），列表里再挂一张卡就是重复。
+        //
+        //   所以断言改成：homeTools == 「应显示的工具」去掉「被关闭的」，
+        //   而不是拿 toolsOf 直接比 —— 后者会把 ② 当成回归。
         assertEquals(
-            "homeTools 必须等于 toolsOf(activeGame.id)",
-            UbToolRegistry.toolsOf(active.id),
+            "homeTools 必须等于 visibleToolsOf 去掉用户关闭的那些",
+            UbToolRegistry.visibleToolsOf(active.id).filterNot { UbToolRegistry.isDisabled(it.id) },
             home,
         )
-        assertEquals(
-            "homeTools 数量必须与 toolsOf(activeGame.id) 相等",
-            UbToolRegistry.toolsOf(active.id).size,
-            home.size,
+        // 但绝不能反过来多出来：首页看到的工具一定是注册表里存在的
+        assertTrue(
+            "homeTools 不能多于 toolsOf（不能凭空多出工具）",
+            home.size <= UbToolRegistry.toolsOf(active.id).size,
+        )
+        // 而且必须是 toolsOf 的子集（顺序可以不同，id 必须都在）
+        val allIds = UbToolRegistry.toolsOf(active.id).map { it.id }.toSet()
+        assertTrue(
+            "homeTools 出现了 toolsOf 里没有的工具: ${home.map { it.id }.filter { it !in allIds }}",
+            home.all { it.id in allIds },
         )
 
         // 非激活游戏（当前只有一款，故此处为空）的工具绝不能出现在首页。

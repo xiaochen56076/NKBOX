@@ -57,6 +57,24 @@ interface ToolProvider {
      * 返回非 null 的工具，由 `UbToolRegistry.homeSummaryOf()` 按注册顺序取第一个**未被用户关闭**的。
      */
     val homeSummary: (@Composable () -> Unit)? get() = null
+
+    /**
+     * 这个工具是否**出现在工具列表卡片里**（P11 补 80）。默认 true。
+     *
+     * ### 为什么要这个开关
+     *
+     * 今日密码被提到了首页摘要区（`homeSummary`），如果工具列表里**再挂一张卡**，
+     * 同一个信息就在一屏里出现两次 —— 用户明确要求「那个今日密码的方块就可以去掉了」。
+     *
+     * ### 只影响"列表"，不影响"管理"
+     *
+     * 置 false 后：
+     * - 首页工具网格不再出现它的卡片（`UbToolRegistry.homeTools`）；
+     * - **工具管理页仍然列出它**（`allToolsOf` 不变）—— 否则用户就再也关不掉它了，
+     *   而它的摘要还在首页显示着。
+     * - 路由与页面**完全保留**（还能从别处进入，例如以后的搜索）。
+     */
+    val showInToolList: Boolean get() = true
 }
 
 /**

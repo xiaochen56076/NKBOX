@@ -77,6 +77,14 @@ object DailyCodeProvider : ToolProvider {
     override val homeSummary: (@Composable () -> Unit)? = {
         com.utilitybox.game.deltaforce.dailycode.DailyCodeSummaryRow()
     }
+
+    /**
+     * ★ P11 补 80：**不再出现在工具列表里**（用户要求「那个今日密码的方块就可以去掉了」）。
+     *
+     * 密码已经在首页摘要区显示，列表里再挂一张一模一样的卡是重复。
+     * 注意：工具管理页仍能看到并关闭它（见 `showInToolList` 的说明）。
+     */
+    override val showInToolList: Boolean = false
 }
 
 object ItemPriceProvider : ToolProvider {

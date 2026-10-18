@@ -166,7 +166,14 @@ private fun WuwaLogin(
         //   原因：库街区登录受极验拦截，这个表单填了也不会成功；
         //   让用户能藏起来，比摆一个永远失败的表单好。
         if (WuwaUiSettings.showLoginEntry) {
-            SectionCard(modifier = Modifier.ubEnter(index = 1)) {
+            // ★ P11 补 82：补横向边距，与英雄卡对齐（用户指出「没有好好对齐」）。
+            //   实测：原来内容区没有 screenH 边距 → 整块贴屏幕左缘，
+            //   比英雄卡靠左 105px。现在统一到 `s.screenH`。
+            SectionCard(
+                modifier = Modifier
+                    .padding(horizontal = s.screenH)
+                    .ubEnter(index = 1),
+            ) {
                 Column(modifier = Modifier.padding(s.cardPad)) {
                     Text(text = "手机号登录", style = t.bodyLarge, color = c.textPrimary)
                 Text(
@@ -247,16 +254,28 @@ private fun WuwaLogin(
         //
         // ★ 仍然放在登录**之前**：两者都不需要库街区账号，
         //   藏在登录后面会让没登录的用户以为用不了。
-        UbSectionHeader(title = "功能")
+        // ★ P11 补 82：分节标题补 `screenH + cardPad - xs` ——
+        //   和**卡片内文字**像素级对齐（`UbSectionHeader` 内部自带 `start = s.xs`，
+        //   所以这里要减掉，否则会多出 4dp）。
+        UbSectionHeader(
+            title = "功能",
+            modifier = Modifier.padding(
+                start = s.screenH + s.cardPad - s.xs,
+                end = s.screenH + s.cardPad - s.xs,
+            ),
+        )
         Spacer(Modifier.height(s.s))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = s.screenH),
             horizontalArrangement = Arrangement.spacedBy(s.m),
         ) {
             Box(modifier = Modifier.weight(1f).ubEnter(index = 2)) {
                 UbToolCard(
                     title = "鸣潮图鉴",
-                    subtitle = "角色与武器",
+                    // ★ P11 补 82：与三角洲一致 —— 不显示灰色小字副标题
+                    subtitle = "",
                     icon = UbIcon.Database,
                     statusColor = c.textTertiary,
                     enabled = true,
@@ -266,7 +285,7 @@ private fun WuwaLogin(
             Box(modifier = Modifier.weight(1f).ubEnter(index = 3)) {
                 UbToolCard(
                     title = "唤取记录",
-                    subtitle = "抽卡历史",
+                    subtitle = "",
                     icon = UbIcon.Clock,
                     statusColor = c.textTertiary,
                     enabled = true,
@@ -275,27 +294,14 @@ private fun WuwaLogin(
             }
         }
 
-        Spacer(Modifier.height(s.s))
-
-        // ★ 风险说明。不是走过场 —— 用户需要知道自己的凭据被怎么对待。
-        SectionCard(modifier = Modifier.ubEnter(index = 4)) {
-            Column(modifier = Modifier.padding(s.cardPad)) {
-                Text(text = "关于账号安全", style = t.bodyMedium, color = c.textPrimary)
-                Spacer(Modifier.height(s.xs))
-                listOf(
-                    "凭据只存在本机应用私有目录，不写日志、不上传任何第三方",
-                    "应用只读角色数据（体力、深塔、周本），不做签到等写操作",
-                    "库街区同一时间只允许一个 APP 端登录，所以这里登录后官方 App 会下线",
-                    "随时可在下方退出登录，退出即从本机删除凭据",
-                ).forEach { line ->
-                    Row(modifier = Modifier.padding(vertical = s.xxs)) {
-                        Text(text = "·", style = t.caption, color = c.textTertiary)
-                        Spacer(Modifier.width(s.xs))
-                        Text(text = line, style = t.caption, color = c.textSecondary)
-                    }
-                }
-            }
-        }
+        // ★ P11 补 82：**删除「关于账号安全」整块**（用户要求）。
+        //
+        //   它原本解释凭据存在哪、应用只读哪些数据、库街区单端登录等 ——
+        //   属于说明性内容，用户明确说不要。
+        //   ★ 凭据处理本身**没有变**（`KuroSession` / `KuroLoginController` 逻辑不动），
+        //     只是首页不再展示这段说明。
+        //
+        //   ★ 下面的**来源声明保留**：它说明数据出处，和"说明性文案"不是一回事。
 
         UbSourceFooter(source = "库街区（kurobbs）官方接口", updatedAt = "实时")
     }

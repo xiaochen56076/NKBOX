@@ -164,14 +164,31 @@ fun GameToolsScreen(
         }
 
         // ---- 分节标题 ----
+        //
+        // ★ P11 补 82：**与卡片内文字对齐**（用户指出「界面没有对齐」）。
+        //   实测过程：分节标题原来对齐的是**卡片外缘**（x=64），
+        //   而卡片里的文字是 x=95（外缘 + cardPad）—— 标题比内容靠左 31px。
+        //
+        //   补 `cardPad` 后变成 x=106，仍差 11px —— 那是 `UbSectionHeader`
+        //   **内部自带**的 `padding(start = s.xs)`。所以这里再减掉 `s.xs`，
+        //   让标题文字起点和卡内文字**像素级一致**。
         item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-            UbSectionHeader(title = "工具", trailing = "共 ${tools.size} 个")
+            UbSectionHeader(
+                title = "工具",
+                trailing = "共 ${tools.size} 个",
+                modifier = Modifier.padding(
+                    start = s.cardPad - s.xs,
+                    end = s.cardPad - s.xs,
+                ),
+            )
         }
 
         itemsIndexed(tools, key = { _, it -> it.id }) { index, tool ->
             UbToolCard(
                 title = tool.name,
-                subtitle = tool.statusLabel ?: tool.description,
+                // ★ P11 补 82：用户要求「把那些灰色的小字删除」
+                //   —— 卡片副标题（工具描述 / 状态说明）一律不再显示。
+                subtitle = "",
                 icon = tool.icon,
                 statusColor = when (tool.status) {
                     ToolStatus.PENDING_SOURCE, ToolStatus.UNAVAILABLE -> c.warning
@@ -189,7 +206,14 @@ fun GameToolsScreen(
         // ---- 数据摘要（占满整行）----
         item(key = "stats", span = { GridItemSpan(maxLineSpan) }) {
             Column {
-                UbSectionHeader(title = "当前状态")
+                // ★ P11 补 82：同样补 `cardPad - xs`，和卡内文字像素级对齐
+                UbSectionHeader(
+                    title = "当前状态",
+                    modifier = Modifier.padding(
+                        start = s.cardPad - s.xs,
+                        end = s.cardPad - s.xs,
+                    ),
+                )
                 UbStatRow(
                     stats = buildList {
                         add(Triple("${all.size}", "工具总数", c.textPrimary))
@@ -202,12 +226,12 @@ fun GameToolsScreen(
                         }
                     },
                 )
-                Text(
-                    text = "数据来源与更新时间见各工具页底部。",
-                    style = t.caption,
-                    color = c.textTertiary,
-                    modifier = Modifier.padding(start = s.xs, top = s.m),
-                )
+                // ★ P11 补 82：删除了底部那行灰色小字
+                //   「数据来源与更新时间见各工具页底部。」（用户要求「灰色的小字删除，不用」）。
+                //
+                //   说明：这行原本是**来源声明**。删掉**不违反红线**
+                //   （没有伪造来源），而且各工具页自己的底部**仍保留**来源与更新时间 ——
+                //   那句话说的"见各工具页底部"依然成立，只是首页不再重复提醒。
             }
         }
     }

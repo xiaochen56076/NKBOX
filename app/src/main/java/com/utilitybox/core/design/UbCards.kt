@@ -259,13 +259,18 @@ fun UbToolCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = subtitle,
-                    style = t.caption,
-                    color = if (enabled) statusColor else c.textTertiary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                // ★ P11 补 82：副标题可为空（用户要求删掉卡片上的灰色小字）。
+                //   传 "" 时**不渲染** Text —— 否则会留下一个空行，
+                //   卡片高度不变但下面空一截，看着像排版漏了东西。
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = t.caption,
+                        color = if (enabled) statusColor else c.textTertiary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

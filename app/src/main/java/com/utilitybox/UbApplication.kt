@@ -55,6 +55,10 @@ class UbApplication : Application() {
         // 分类树 24h / 条目列表 6h —— 接口是逆向来的，原作者自己也在做缓存。
         com.utilitybox.game.wutheringwaves.kuro.KuroWikiApi.install(this)
 
+        // 角色名 → 头像 URL 索引（P11 补 96）。
+        // 抽卡统计要显示角色头像；表来自 wiki「共鸣者」列表，本地存一份（7 天过期）。
+        com.utilitybox.game.wutheringwaves.kuro.WuwaAvatarIndex.install(this)
+
         // 价格搜索历史（P11 补 53）。进程启动读一次盘，之后界面订阅它的快照状态。
         // ★ 不用 Keystore：搜索历史不是密钥，加密既没必要，
         //   也会把"清除历史"变成一个涉及密钥的操作。

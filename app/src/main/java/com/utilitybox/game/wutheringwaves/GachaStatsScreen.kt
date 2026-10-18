@@ -19,6 +19,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +39,10 @@ import com.utilitybox.core.design.SectionCard
 import com.utilitybox.core.design.UbDivider
 import com.utilitybox.core.design.UbIcon
 import com.utilitybox.core.design.UbIcons
+import com.utilitybox.core.design.UbItemIcon
 import com.utilitybox.game.wutheringwaves.kuro.GachaInsights
 import com.utilitybox.game.wutheringwaves.kuro.GachaRecord
+import com.utilitybox.game.wutheringwaves.kuro.WuwaAvatarIndex
 import com.utilitybox.game.wutheringwaves.kuro.computeInsights
 import java.util.Locale
 
@@ -76,6 +79,12 @@ fun GachaStatsScreen(
     modifier: Modifier = Modifier,
 ) {
     if (records.isEmpty()) return
+
+    // ★ P11 补 96：加载「角色名 → 头像」索引。
+    //   只触发一次：对象内部自己去重（已加载/已过期/正在加载都会短路）。
+    //   加载完成后 `WuwaAvatarIndex.byName` 是 Compose 状态，读取它的行会自动重组，
+    //   所以这里**不需要**再把结果往下传。
+    LaunchedEffect(Unit) { WuwaAvatarIndex.ensureLoaded() }
 
     // ★ remember：只在 records 真的变了才重算。滑动/切换 tab 都不该重跑。
     val g = remember(records) { computeInsights(records) }
@@ -241,11 +250,15 @@ private fun MiniStat(label: String, value: String, color: Color) {
 }
 
 /**
- * 一行五星：首字标记 + 名字 + 数据条。
+ * 一行五星：**角色头像** + 名字 + 数据条。
  *
- * ★ 首字标记是**刻意的占位设计**，不是缺图：本工程没有游戏角色素材，
- *   拿通用图标冒充立绘是红线禁止的。用名字第一个字 + 稀有度金色，
- *   既统一又不假装。
+ * ★ P11 补 96：原来这里用「名字首字」做圆形占位（用户反馈：
+ *   「每个角色能不能获取其角色头像…而不是使用文字当头像」）。
+ *   现在头像来自 `WuwaAvatarIndex`（库街区 wiki 的官方 `contentUrl`），
+ *   经 `UbItemIcon` 加载并**磁盘缓存**。
+ *
+ * ★★★ 索引里**没有**这个角色时，仍然回退到首字占位 ——
+ *   绝不拿通用图标或别的角色的图冒充。宁可显示首字，也不显示错的头像。
  */
 @Composable
 private fun FiveStarRow(
@@ -259,25 +272,36 @@ private fun FiveStarRow(
     val s = LocalUbSpacing.current
     val t = LocalUbTypography.current
 
+    // 读 Compose 状态：头像索引加载完成后这一行会自动重组
+    val avatarUrl = WuwaAvatarIndex.urlOf(name)
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(s.cardPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(s.m),
     ) {
-        // 首字标记
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(c.warning.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = name.take(1),
-                style = t.bodyLarge,
-                color = c.warning,
-                textAlign = TextAlign.Center,
+        if (avatarUrl != null) {
+            UbItemIcon(
+                url = avatarUrl,
+                contentDescription = name,
+                size = 38.dp,
             )
+        } else {
+            // 兜底：索引里没有这个角色 → 首字占位（不是"缺图"，是不假装）
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(c.warning.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = name.take(1),
+                    style = t.bodyLarge,
+                    color = c.warning,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
 
         Column(modifier = Modifier.weight(1f)) {

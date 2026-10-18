@@ -120,7 +120,15 @@ fun GachaStatsScreen(
         }
 
         UpCard(g)
-        FiveStarCard(g)
+        // ★ P11 补 99：**删除了底部的「五星记录（N）」总表**（用户要求
+        //   「下面的这个 5 星记录其实可以不要的」）。
+        //
+        //   为什么删是对的：每个池的明细卡（PoolDetail）里已经有**同一批五星** ——
+        //   带头像、带数据条、按池分组。再在页面底部铺一遍全量 21 行，
+        //   既是重复信息，又让页面长了近一倍。
+        //
+        //   ★ 别再加回来：要看"全部五星"，上面的分池卡片能切到任意池，
+        //     每个池的明细里就是那个池的全部五星。
     }
 }
 
@@ -498,56 +506,13 @@ private fun UpCard(g: GachaInsights) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// 五星总表
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun FiveStarCard(g: GachaInsights) {
-    val c = LocalUbColors.current
-    val s = LocalUbSpacing.current
-    val t = LocalUbTypography.current
-    val r = LocalUbRadius.current
-
-    if (g.fiveStarPulls.isEmpty()) return
-    val list = g.fiveStarPulls.reversed()
-
-    SectionCard(title = "五星记录（${list.size}）") {
-        Column {
-            list.forEachIndexed { i, f ->
-                if (i > 0) UbDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(s.cardPad),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(s.m),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(r.chip))
-                            .background(pityColor(f.pityUsed).copy(alpha = 0.14f))
-                            .padding(horizontal = s.s, vertical = s.xs),
-                    ) {
-                        Text(text = "${f.pityUsed}", style = t.numericMedium, color = pityColor(f.pityUsed))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = f.name, style = t.bodyLarge, color = c.textPrimary)
-                        Text(
-                            text = "${shortPool(f.poolType)} · ${shortDate(f.time)}",
-                            style = t.caption,
-                            color = c.textTertiary,
-                        )
-                    }
-                    when (f.isUp) {
-                        true -> Pill("UP", c.success)
-                        false -> Pill("歪", c.danger)
-                        null -> Unit
-                    }
-                }
-            }
-        }
-    }
-}
-
+/**
+ * 单个小标签（UP / 歪）。
+ *
+ * ★ 历史：这里原本上面还有一个 `FiveStarCard`（页面底部的五星总表），
+ *   P11 补 99 已按用户要求删除 —— 每个池的明细里已经列了同样的五星，
+ *   底部再铺一遍全量属于重复。
+ */
 @Composable
 private fun Pill(text: String, color: Color) {
     val t = LocalUbTypography.current

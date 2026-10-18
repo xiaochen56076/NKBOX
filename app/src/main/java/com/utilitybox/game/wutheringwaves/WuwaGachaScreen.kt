@@ -59,17 +59,6 @@ import kotlinx.coroutines.launch
  * 所以页面明确写出这一点，并且**只缓存记录、不缓存链接** ——
  * 链接过期后统计仍然看得到，要更新就再粘一次新链接。
  */
-/**
- * 记录列表一次渲染多少条。
- *
- * ★ 这个值是被**实测卡顿**逼出来的（P11 补 44）：
- *   原来一次性铺 848 行，等于同时实例化 848 个 composable，
- *   滑动明显掉帧。改成默认 60 条 + 「显示全部」。
- *
- * ★ 60 的依据：一屏大约能显示 8~10 行，60 行 ≈ 6~7 屏，
- *   已经足够覆盖"翻一翻最近抽了什么"的需求，而组合成本只有一个零头。
- */
-private const val RECORD_PAGE = 60
 
 @Composable
 fun WuwaGachaScreen(
@@ -90,8 +79,6 @@ fun WuwaGachaScreen(
     ) }
 
     var link by remember { mutableStateOf("") }
-    // ★ 记录列表默认只渲染一页（性能，见下方 RECORD_PAGE 的说明）
-    var showAll by remember { mutableStateOf(false) }
     var records by remember { mutableStateOf(WuwaGachaStore.load()) }
     var fetching by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0 to 0) }
@@ -295,41 +282,6 @@ fun WuwaGachaScreen(
             Spacer(Modifier.height(s.s))
             SectionCard {
                 Column {
-                    Box(modifier = Modifier.fillMaxWidth().padding(s.cardPad)) {
-                        Text(
-                            text = "记录（${records.size} 条）",
-                            style = t.bodyLarge,
-                            color = c.textPrimary,
-                        )
-                    }
-                    // ★★ 性能修复（P11 补 44）：这里原本是
-                    //   `records.sortedByDescending { it.sortKey }.forEachIndexed { ... GachaRow(r) }`
-                    //   —— 一次性铺 **848 行**，等于同时实例化 848 个 composable。
-                    //   这是用户反馈「有点卡顿」的**主要来源**（不是统计卡片）。
-                    //
-                    //   默认只渲染最近 [RECORD_PAGE]，点「显示全部」再展开。
-                    //   排序结果用 remember 缓存，避免每次重组都重排 848 条。
-                    val sorted = remember(records) { records.sortedByDescending { it.sortKey } }
-                    val shown = if (showAll) sorted else sorted.take(RECORD_PAGE)
-                    shown.forEachIndexed { i, r ->
-                        if (i > 0) UbDivider()
-                        GachaRow(r)
-                    }
-                    if (!showAll && sorted.size > RECORD_PAGE) {
-                        UbDivider()
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            UbTextButton(
-                                label = "显示全部 ${sorted.size} 条",
-                                onClick = { showAll = true },
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(s.s))
-            SectionCard {
-                Column {
                     UbNavRow(
                         title = "清除本地记录",
                         icon = UbIcon.Warning,
@@ -456,41 +408,6 @@ private fun StatCell(label: String, value: String, valueColor: Color) {
     }
 }
 
-@Composable
-private fun GachaRow(r: com.utilitybox.game.wutheringwaves.kuro.GachaRecord) {
-    val c = LocalUbColors.current
-    val s = LocalUbSpacing.current
-    val t = LocalUbTypography.current
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = s.cardPad, vertical = s.m),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // 星级用色块 + 文字双重表达（无障碍：不能只靠颜色）
-        Box(
-            modifier = Modifier
-                .size(4.dp)
-                .height(28.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(rarityColor(r.rarity)),
-        )
-        Spacer(Modifier.width(s.m))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = r.name, style = t.bodyMedium, color = c.textPrimary)
-            Text(
-                text = "${WuwaGachaApi.poolLabel(r.poolType)} · ${r.time}",
-                style = t.caption,
-                color = c.textTertiary,
-            )
-        }
-        Text(
-            // ★ rarity == 0 说明接口没给星级 —— 显示"—"而不是当成 3 星
-            text = if (r.rarity > 0) "${r.rarity}★" else "—",
-            style = t.bodyMedium,
-            color = rarityColor(r.rarity),
-        )
-    }
-}
-
 /**
  * 常驻五星名单编辑弹窗（P11 补 100）。
  *
@@ -602,17 +519,4 @@ private fun SnapshotViewer(
             GachaStatsScreen(records = records, modifier = Modifier.weight(1f))
         }
     }
-}
-
-/**
- * 稀有度配色。5★ 金、4★ 紫、3★ 与未知灰。
- *
- * ★ 这三个是**语义色**（对应游戏内的稀有度约定），刻意不跟随主题强调色 ——
- *   玩家对"金/紫"的认知是固定的，跟着主题变会让它失去意义。
- */
-@Composable
-private fun rarityColor(rarity: Int): Color = when (rarity) {
-    5 -> Color(0xFFD9A21B)
-    4 -> Color(0xFF8B5CF6)
-    else -> LocalUbColors.current.textTertiary
 }

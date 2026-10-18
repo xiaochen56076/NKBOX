@@ -163,26 +163,13 @@ fun GameToolsScreen(
             }
         }
 
-        // ---- 分节标题 ----
+        // ---- 工具卡片网格 ----
         //
-        // ★ P11 补 82：**与卡片内文字对齐**（用户指出「界面没有对齐」）。
-        //   实测过程：分节标题原来对齐的是**卡片外缘**（x=64），
-        //   而卡片里的文字是 x=95（外缘 + cardPad）—— 标题比内容靠左 31px。
+        // ★ P11 补 87：**删除「工具 / 共 N 个」分节标题**（用户圈出来要求「把这些小字去掉」）。
         //
-        //   补 `cardPad` 后变成 x=106，仍差 11px —— 那是 `UbSectionHeader`
-        //   **内部自带**的 `padding(start = s.xs)`。所以这里再减掉 `s.xs`，
-        //   让标题文字起点和卡内文字**像素级一致**。
-        item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-            UbSectionHeader(
-                title = "工具",
-                trailing = "共 ${tools.size} 个",
-                modifier = Modifier.padding(
-                    start = s.cardPad - s.xs,
-                    end = s.cardPad - s.xs,
-                ),
-            )
-        }
-
+        //   历史：这个标题经历过两轮对齐调整（先对齐卡片外缘，再对齐卡内文字），
+        //   最后用户明确说不要它 —— 那两轮对齐工作因此作废。
+        //   ★ 别再把它加回来：用户已经两次表示不要这类小标签。
         itemsIndexed(tools, key = { _, it -> it.id }) { index, tool ->
             UbToolCard(
                 title = tool.name,
@@ -206,14 +193,8 @@ fun GameToolsScreen(
         // ---- 数据摘要（占满整行）----
         item(key = "stats", span = { GridItemSpan(maxLineSpan) }) {
             Column {
-                // ★ P11 补 82：同样补 `cardPad - xs`，和卡内文字像素级对齐
-                UbSectionHeader(
-                    title = "当前状态",
-                    modifier = Modifier.padding(
-                        start = s.cardPad - s.xs,
-                        end = s.cardPad - s.xs,
-                    ),
-                )
+                // ★ P11 补 87：删除「当前状态」小标题（用户要求去掉这类小字）。
+                //   数字行本身保留 —— 它是真实统计，不是装饰。
                 UbStatRow(
                     stats = buildList {
                         add(Triple("${all.size}", "工具总数", c.textPrimary))

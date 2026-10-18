@@ -250,17 +250,9 @@ private fun WuwaLogin(
         //
         // ★ 仍然放在登录**之前**：两者都不需要库街区账号，
         //   藏在登录后面会让没登录的用户以为用不了。
-        // ★ P11 补 82：分节标题补 `screenH + cardPad - xs` ——
-        //   和**卡片内文字**像素级对齐（`UbSectionHeader` 内部自带 `start = s.xs`，
-        //   所以这里要减掉，否则会多出 4dp）。
-        UbSectionHeader(
-            title = "功能",
-            modifier = Modifier.padding(
-                start = s.screenH + s.cardPad - s.xs,
-                end = s.screenH + s.cardPad - s.xs,
-            ),
-        )
-        Spacer(Modifier.height(s.s))
+        // ★ P11 补 87：删除「功能」分节标题（用户圈出来要求「把这些小字去掉」）。
+        //   只留一个间距，把登录卡和下面的工具卡分开。
+        Spacer(Modifier.height(s.l))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -290,16 +282,14 @@ private fun WuwaLogin(
             }
         }
 
-        // ★ P11 补 82：**删除「关于账号安全」整块**（用户要求）。
+        // ★ P11 补 87：删除页脚的来源声明（用户圈出来要求「把这些小字去掉」）。
         //
-        //   它原本解释凭据存在哪、应用只读哪些数据、库街区单端登录等 ——
-        //   属于说明性内容，用户明确说不要。
-        //   ★ 凭据处理本身**没有变**（`KuroSession` / `KuroLoginController` 逻辑不动），
-        //     只是首页不再展示这段说明。
+        //   ★ 说明：**来源声明没有在这个 App 里消失** ——
+        //     图鉴页 / 唤取记录页各自底部仍然有 `UbSourceFooter`，
+        //     用户看到数据的那一刻就有出处。这里删的只是**入口页**上重复的一行。
         //
-        //   ★ 下面的**来源声明保留**：它说明数据出处，和"说明性文案"不是一回事。
-
-        UbSourceFooter(source = "库街区（kurobbs）官方接口", updatedAt = "实时")
+        //   历史记录：P11 补 82 时我保留过这行并问用户"要不要也删"，
+        //   现在用户圈了它 —— 这就是答复。
     }
 }
 

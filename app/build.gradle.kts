@@ -133,4 +133,13 @@ dependencies {
     // 解析、错误映射、缓存新鲜度、四态判定这些必须能在无设备的情况下验证
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // ★ org.json 的**真实实现**（P11 补 97）。
+    //
+    //   为什么需要：JVM 单测的 `android.jar` 里 `org.json.*` 全是
+    //   抛 `RuntimeException("Stub!")` 的桩，而 `GachaHistoryStore` /
+    //   `WuwaGachaStore` 用它做序列化。不加这条依赖，相关测试会
+    //   **运行时抛 Stub! 而不是给出真实结果** —— 看起来像代码 bug，
+    //   实际是环境缺实现，极易误判。
+    testImplementation("org.json:json:20240303")
 }

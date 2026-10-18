@@ -31,7 +31,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.utilitybox.core.design.*
+import com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore
 import com.utilitybox.game.wutheringwaves.kuro.GachaResult
+import com.utilitybox.game.wutheringwaves.kuro.GachaSnapshotMeta
 import com.utilitybox.game.wutheringwaves.kuro.GachaStats
 import com.utilitybox.game.wutheringwaves.kuro.WuwaGachaApi
 import com.utilitybox.game.wutheringwaves.kuro.WuwaGachaStore
@@ -93,6 +95,19 @@ fun WuwaGachaScreen(
     var progress by remember { mutableStateOf(0 to 0) }
     var error by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
+
+    // ★ P11 补 97：历史快照列表（每次导入存一份，可点进去看往期）
+    var history by remember { mutableStateOf(GachaHistoryStore.list()) }
+    // 正在查看的往期快照；null 表示看当前记录
+    var viewing by remember { mutableStateOf<GachaSnapshotMeta?>(null) }
+
+    // ★ 查看往期快照时**整屏接管**（只读视图）：
+    //   不嵌进下面那个 verticalScroll —— 两层滚动容器会互相抢手势，
+    //   而且这里要显示的是"那一期的完整统计"，和当前记录无关。
+    viewing?.let { meta ->
+        SnapshotViewer(meta = meta, onBack = { viewing = null })
+        return
+    }
 
     Column(
         modifier = modifier
@@ -193,6 +208,17 @@ fun WuwaGachaScreen(
                                     "请回游戏重新打开「唤取记录」再复制一次。"
                             } else {
                                 notice = "已获取 $fetched 条记录"
+
+                                // ★ P11 补 97：这次获取**存档成一份历史快照**。
+                                //   用户要「历史记录…可以点进去查看往期」。
+                                //   ★ 存的是**合并后的全量**（records），不是本次增量 ——
+                                //     往期视图应当看到"那天查的时候完整长什么样"。
+                                //   ★ 失败不打断主流程：当前记录已经存好了，
+                                //     历史存档失败不该让用户以为这次获取白干了。
+                                runCatching {
+                                    GachaHistoryStore.save(records, parsed.playerId)
+                                }
+                                history = GachaHistoryStore.list()
 
                                 // ★★ 自动云备份（P11 补 41）—— 用户要的
                                 //    「每次链接获取数据完后，会自动存储到百度网盘」。
@@ -306,7 +332,48 @@ fun WuwaGachaScreen(
             }
         }
 
-        Spacer(Modifier.height(s.s))
+        // ---- 历史记录（P11 补 97）----
+        //
+        // 用户要的形态（参考图）：一行一份存档，显示「账号 · 日期」，点进去看往期。
+        //
+        // ★ 放在 if/else **外面**：即使当前记录被清空了，历史存档仍然要能看到 ——
+        //   两份数据故意互不影响（见 GachaHistoryStore 的说明）。
+        if (history.isNotEmpty()) {
+            Spacer(Modifier.height(s.s))
+            SectionCard {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(s.cardPad),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "历史记录", style = t.bodyLarge, color = c.textPrimary)
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = "共 ${history.size} 份",
+                            style = t.caption,
+                            color = c.textTertiary,
+                        )
+                    }
+                    history.forEachIndexed { i, m ->
+                        if (i > 0) UbDivider()
+                        UbNavRow(
+                            // ★ 账号未知时只显示日期：编一个账号号是假数据（红线）。
+                            //   "unknown" 是迁移时 unavoidable 的结果（历史记录里
+                            //   从来就没存过 player_id），不是猜的。
+                            title = if (m.accountId == "unknown") {
+                                m.dateLabel
+                            } else {
+                                "${m.accountId} · ${m.dateLabel}"
+                            },
+                            icon = UbIcon.Clock,
+                            trailingText = "${m.recordCount} 条 · ${m.timeLabel}",
+                            onClick = { viewing = m },
+                        )
+                    }
+                }
+            }
+        }
+
         SectionCard {
             Column(modifier = Modifier.padding(s.cardPad)) {
                 Text(text = "说明", style = t.bodyMedium, color = c.textPrimary)
@@ -372,6 +439,59 @@ private fun GachaRow(r: com.utilitybox.game.wutheringwaves.kuro.GachaRecord) {
             style = t.bodyMedium,
             color = rarityColor(r.rarity),
         )
+    }
+}
+
+/**
+ * 往期快照的只读视图（P11 补 97）。
+ *
+ * 顶部一条返回条 + 该期的时间与条数，下面是**那一期的完整统计**
+ * （直接复用 [GachaStatsScreen]，保证往期和当前的统计口径完全一致 ——
+ * 另写一套统计必然和当前页对不上，用户会以为数据错了）。
+ *
+ * ★ 只读：这里不提供导入/清除，往期存档是"当时那一刻的样子"，
+ *   能被就地修改就不再是存档了。
+ */
+@Composable
+private fun SnapshotViewer(
+    meta: GachaSnapshotMeta,
+    onBack: () -> Unit,
+) {
+    val c = LocalUbColors.current
+    val s = LocalUbSpacing.current
+    val t = LocalUbTypography.current
+
+    // 按 id 缓存：来回切换不同快照时才重新读盘
+    val records = remember(meta.id) { GachaHistoryStore.load(meta.id) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = s.screenH, end = s.screenH, top = s.s, bottom = s.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            UbTextButton(label = "返回当前", onClick = onBack)
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "${meta.dateLabel} ${meta.timeLabel} · ${meta.recordCount} 条",
+                style = t.caption,
+                color = c.textTertiary,
+            )
+        }
+
+        if (records.isEmpty()) {
+            // 文件损坏/被外部清理 —— 如实说明，不假装有数据
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "这份历史记录已损坏或不存在",
+                    style = t.bodyMedium,
+                    color = c.textTertiary,
+                )
+            }
+        } else {
+            GachaStatsScreen(records = records, modifier = Modifier.weight(1f))
+        }
     }
 }
 

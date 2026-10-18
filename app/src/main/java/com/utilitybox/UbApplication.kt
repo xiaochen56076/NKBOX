@@ -51,6 +51,23 @@ class UbApplication : Application() {
         // 链接里的 record_id 是短时凭据，见 WuwaGachaApi 的说明。
         com.utilitybox.game.wutheringwaves.kuro.WuwaGachaStore.install(this)
 
+        // 唤取记录的**历史快照**（P11 补 97）。每次导入存一份，可点进去看往期。
+        com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore.install(this)
+
+        // ★ 老用户升级迁移：把已有的当前记录存成**第一份历史快照**。
+        //   不这么做的话，升级后「历史记录」区是空的，
+        //   用户会以为功能没生效 —— 而数据其实就在旁边躺着。
+        //   accountId 传空 → 存成 "unknown"：我们从来没存过 player_id，
+        //   **不编造一个账号号**，列表里只显示日期。
+        runCatching {
+            if (com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore.list().isEmpty()) {
+                val cur = com.utilitybox.game.wutheringwaves.kuro.WuwaGachaStore.load()
+                if (cur.isNotEmpty()) {
+                    com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore.save(cur, "")
+                }
+            }
+        }
+
         // 图鉴（库街区公开 WIKI）的磁盘缓存（P11 补 18）。
         // 分类树 24h / 条目列表 6h —— 接口是逆向来的，原作者自己也在做缓存。
         com.utilitybox.game.wutheringwaves.kuro.KuroWikiApi.install(this)

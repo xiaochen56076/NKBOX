@@ -119,15 +119,16 @@ fun SettingsHubScreen(
         // ★ 「外观」与「设置」仍在「我的」页 —— 那是用户圈选的范围，未擅自扩大。
         SectionCard(title = "设置项") {
             Column {
+                // ★ P11 补 84：用户要求「把账号管理移动到工具管理上面」。
+                //   账号管理排第一 —— 它是"用户身份/数据"这一层的东西，
+                //   放在最前面比夹在功能开关中间更符合心智顺序。
+                UbNavRow(title = "账号管理", icon = UbIcon.User, onClick = onOpenAccount)
+                UbDivider()
                 UbNavRow(title = "工具管理", icon = UbIcon.Grid, onClick = onOpenTools)
                 UbDivider()
                 UbNavRow(title = "数据", icon = UbIcon.Database, onClick = onOpenData)
                 UbDivider()
                 UbNavRow(title = "交互", icon = UbIcon.Sliders, onClick = onOpenInteraction)
-                UbDivider()
-                // P11 补 39：用户原话「如果是百度网盘那种需要登录，
-                // 直接放到设置选项中的一个叫**账号管理**的选项中」
-                UbNavRow(title = "账号管理", icon = UbIcon.User, onClick = onOpenAccount)
             }
         }
 

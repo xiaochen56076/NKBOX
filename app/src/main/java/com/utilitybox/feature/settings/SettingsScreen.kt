@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -268,71 +270,173 @@ private fun stateLabel(state: SourceState) = when (state) {
     SourceState.UNAVAILABLE -> "不可用"
 }
 
-/** 关于页 */
+/**
+ * 关于页（P11 补 84 —— 按用户要求改成「AppShare 那种版式」）。
+ *
+ * ### 改版要点
+ *
+ * 用户给了一张参考图（图三）并说「把阶段去掉，改为和图三一样的版式」。
+ * 参考图的结构是：
+ * ```
+ *        [应用图标]
+ *         应用名
+ *       当前版本：x.y.z
+ *
+ *   ┌─────────────────────────┐
+ *   │ 更新通道        正式版 ▼ │  ← 高亮行
+ *   └─────────────────────────┘
+ *   ┌────────┬────────┐
+ *   │ 块1     │ 块2     │        ← 块状卡片网格
+ *   ├────────┼────────┤
+ *   │ 块3     │ 块4     │
+ *   └────────┴────────┘
+ *          ©2020-2026 xxx
+ *        协议 | 隐私政策
+ * ```
+ *
+ * **已删除**：原来的「已实现的阶段」整节（用户明确要求去掉）。
+ *
+ * ★ **不编造内容**：参考图里那些块是"开发动态 / 联系我们 / 致谢名单 / 捐赠支持"，
+ *   本项目**没有**对应的真实页面或链接，照抄就会变成点了没反应、
+ *   或者指向不存在的地址 —— 那是**造数据**。
+ *   所以块里放的是**真实存在**的信息：开源许可、使用声明。
+ */
 @Composable
 fun AboutScreen(modifier: Modifier = Modifier) {
     val s = LocalUbSpacing.current
     val t = LocalUbTypography.current
     val c = LocalUbColors.current
+    val r = LocalUbRadius.current
 
     Column(
-        modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = LocalUbSize.current.bottomBarReserved),
-        verticalArrangement = Arrangement.spacedBy(s.s),
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = LocalUbSize.current.bottomBarReserved),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        SectionCard(title = "应用") {
-            Column {
-                UbSettingRow(title = "名称", trailing = { Text(UbStrings.appName, style = t.bodyLarge, color = c.textSecondary) })
-                UbDivider()
-                // ★ 版本与阶段取自构建配置，而不是写死在界面里 ——
-                //   写死会导致"界面显示的版本"与"实际安装的版本"不一致（P02 原型就写死过）。
-                UbSettingRow(
-                    title = "版本",
-                    trailing = {
-                        Text(
-                            text = com.utilitybox.BuildConfig.VERSION_NAME,
-                            style = t.bodyLarge,
-                            color = c.textSecondary,
-                        )
-                    },
-                )
-                UbDivider()
-                UbSettingRow(title = "数据源", trailing = { Text("社区第三方接口", style = t.bodyLarge, color = c.textSecondary) })
-            }
+        Spacer(Modifier.height(s.xl))
+
+        // ---- 应用标识（居中）----
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(r.cardLarge))
+                .background(c.accentSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            UbIcons.Icon(icon = UbIcon.Game, tint = c.accent, size = 36.dp)
         }
-        SectionCard(title = "已实现的阶段") {
-            Column(modifier = Modifier.padding(s.cardPad), verticalArrangement = Arrangement.spacedBy(s.xs)) {
-                listOf(
-                    "P00–P04 · 需求、调研、设计系统、基础工程、导航与扩展机制",
-                    "P06 今日密码 · 已接真实数据源",
-                    "P07 物品物价 · 已接真实数据源（含历史趋势）",
-                    "P08 Liquid Glass · 采用 Haze 2.0.1",
-                    "P09 设置与扩展机制 · 设置持久化、缓存管理、工具启停",
-                ).forEach {
-                    Text(text = "· $it", style = t.caption, color = c.textSecondary)
-                }
+        Spacer(Modifier.height(s.m))
+        Text(text = UbStrings.appName, style = t.titleLarge, color = c.textPrimary)
+        Spacer(Modifier.height(s.xs))
+        Text(
+            // ★ 版本取自构建配置，不写死 —— 写死会让"界面版本"和"装上的版本"不一致
+            text = "当前版本：${com.utilitybox.BuildConfig.VERSION_NAME}",
+            style = t.caption,
+            color = c.textTertiary,
+        )
+
+        Spacer(Modifier.height(s.xl))
+
+        // ---- 数据源（高亮行，对应参考图的"更新通道"）----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = s.screenH)
+                .clip(RoundedCornerShape(r.card))
+                .background(c.accentSoft)
+                .padding(s.cardPad),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "数据源", style = t.bodyLarge, color = c.textPrimary)
                 Text(
-                    text = "P05 好友在线状态已按裁决延后（经实测无可用数据源，付费亦无朋友列表）。",
+                    text = "应用里所有游戏数据的来源",
                     style = t.caption,
                     color = c.textTertiary,
-                    modifier = Modifier.padding(top = s.xs),
+                    modifier = Modifier.padding(top = s.xxs),
                 )
             }
+            Text(text = "社区第三方接口", style = t.bodyLarge, color = c.accent)
         }
-        SectionCard(title = "声明") {
-            Column(modifier = Modifier.padding(s.cardPad), verticalArrangement = Arrangement.spacedBy(s.s)) {
-                Text(
-                    text = "本应用不提供任何自动化游戏操作，不进行签到、代打、内存修改或抓包。" +
-                        "不实现 Cookie 登录，不索取游戏账号密码。",
-                    style = t.caption,
-                    color = c.textSecondary,
-                )
-                Text(
-                    text = "第三方依赖许可：AndroidX / Jetpack Compose（Apache-2.0）、Kotlin（Apache-2.0）。" +
-                        "详见 LICENSES.md。",
-                    style = t.caption,
-                    color = c.textTertiary,
-                )
-            }
+
+        Spacer(Modifier.height(s.m))
+
+        // ---- 块状卡片（对应参考图的 2×2 网格）----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = s.screenH),
+            horizontalArrangement = Arrangement.spacedBy(s.m),
+        ) {
+            AboutBlock(
+                modifier = Modifier.weight(1f),
+                icon = UbIcon.Info,
+                title = "开源许可",
+                lines = listOf("AndroidX / Compose", "Kotlin · Apache-2.0"),
+            )
+            AboutBlock(
+                modifier = Modifier.weight(1f),
+                icon = UbIcon.Warning,
+                title = "声明",
+                lines = listOf("不做自动化操作", "不抓包、不索取密码"),
+            )
+        }
+
+        Spacer(Modifier.height(s.xl))
+
+        // ---- 居中页脚 ----
+        Text(text = "©2026 ${UbStrings.appName}", style = t.caption, color = c.textTertiary)
+        Spacer(Modifier.height(s.xs))
+        Text(
+            text = "完整许可清单见 LICENSES.md",
+            style = t.caption,
+            color = c.textTertiary,
+        )
+        Spacer(Modifier.height(s.l))
+    }
+}
+
+/**
+ * 关于页的块状卡片。
+ *
+ * ★ 做成**纯展示块**而不是按钮：参考图里那几块是可点的入口，
+ *   但本项目没有对应的真实页面 —— 做成可点的会变成"点了没反应"。
+ *   视觉上保留同样的块状层次，交互上不假装。
+ */
+@Composable
+private fun AboutBlock(
+    icon: UbIcon,
+    title: String,
+    lines: List<String>,
+    modifier: Modifier = Modifier,
+) {
+    val s = LocalUbSpacing.current
+    val t = LocalUbTypography.current
+    val c = LocalUbColors.current
+    val r = LocalUbRadius.current
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(r.card))
+            .background(c.bgElevated)
+            .padding(s.cardPad),
+        verticalArrangement = Arrangement.spacedBy(s.xs),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(r.button))
+                .background(c.accentSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            UbIcons.Icon(icon = icon, tint = c.accent, size = 20.dp)
+        }
+        Spacer(Modifier.height(s.xxs))
+        Text(text = title, style = t.bodyLarge, color = c.textPrimary)
+        lines.forEach { line ->
+            Text(text = line, style = t.caption, color = c.textTertiary)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.utilitybox.domain.tool
 
+import androidx.compose.runtime.Composable
 import com.utilitybox.domain.model.GameDescriptor
 import com.utilitybox.domain.model.ToolDescriptor
 
@@ -81,6 +82,31 @@ object UbToolRegistry {
     fun gamesWithTools(): List<GameDescriptor> {
         val ids = tools.map { it.gameId }.toSet()
         return games.filter { it.id in ids }
+    }
+
+    /**
+     * 某游戏「首页摘要」的提供者（P11 补 79）。
+     *
+     * ★ 取第一个**已启用**且提供了摘要的工具。用户关掉那个工具后摘要也跟着消失 ——
+     *   否则会出现"工具被关了，但它的数据还占着首页"的矛盾。
+     *
+     * ★ 返回类型是 `@Composable () -> Unit` 而不是某个具体数据：
+     *   注册表不需要知道摘要长什么样，首页也不知道 —— 渲染完全在工具自己的包里。
+     *
+     * ★ 与 [homeTools] 一样先读 `toolsRevision`：工具启停不是 Compose 状态，
+     *   不读它的话在设置里关掉工具后首页摘要不会消失。
+     */
+    fun homeSummaryOf(gameId: String): (@Composable () -> Unit)? {
+        @Suppress("UNUSED_EXPRESSION")
+        com.utilitybox.core.settings.UbSettingsState.toolsRevision
+
+        return AppContainer.providers
+            .firstOrNull {
+                it.descriptor.gameId == gameId &&
+                    !isDisabled(it.descriptor.id) &&
+                    it.homeSummary != null
+            }
+            ?.homeSummary
     }
 
     // -----------------------------------------------------------------------

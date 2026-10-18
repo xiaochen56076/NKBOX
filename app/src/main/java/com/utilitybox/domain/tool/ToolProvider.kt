@@ -33,6 +33,30 @@ interface ToolProvider {
      */
     @Composable
     fun screen(nav: ToolNavActions, modifier: Modifier)
+
+    /**
+     * 可选的「首页摘要」：显示在**游戏身份卡正下方**的一行（P11 补 79）。
+     *
+     * ### 为什么有这个槽位
+     *
+     * 用户要求：「把今日密码给抠出来，放到三角洲那个名称卡片的下面一排显示，
+     * 主要就免去一步的点击交互」—— 每天只看一眼的数据，多一次点击是纯损耗。
+     *
+     * ### 为什么做成接口槽位，而不是在首页直接调今日密码
+     *
+     * `HomeScreen` 的架构铁律是「**本文件不出现任何具体工具名**」，
+     * 首页只认识 [ToolProvider] 这个抽象。如果在那里直接调用
+     * `DailyCodeHolder`，就等于把某个具体工具的知识塞进了公共层，
+     * 接第二款游戏、或再加一个摘要时会立刻变成 `if (gameId == "deltaforce")` 的分支堆。
+     *
+     * 所以：**首页只问"你有没有摘要"，具体是什么由工具自己决定**。
+     *
+     * ### 默认 null
+     *
+     * 绝大多数工具不值得占首页位置，默认不提供。
+     * 返回非 null 的工具，由 `UbToolRegistry.homeSummaryOf()` 按注册顺序取第一个**未被用户关闭**的。
+     */
+    val homeSummary: (@Composable () -> Unit)? get() = null
 }
 
 /**

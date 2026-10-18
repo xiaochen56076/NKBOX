@@ -147,6 +147,19 @@ fun GameToolsScreen(
             )
         }
 
+        // ---- 工具自带的首页摘要（P11 补 79）----
+        //
+        // ★ 用户要求把「今日密码」抠到身份卡下方，免去一次点击。
+        // ★ 但**首页不知道具体是谁提供的** —— 只问注册表"这个游戏有没有摘要"。
+        //   具体渲染在工具自己的包里（`ToolProvider.homeSummary`）。
+        //   这样首页仍然不出现任何具体工具名，架构铁律不被破坏。
+        val summary = UbToolRegistry.homeSummaryOf(gameId)
+        if (summary != null) {
+            item(key = "tool_summary", span = { GridItemSpan(maxLineSpan) }) {
+                summary()
+            }
+        }
+
         // ---- 分节标题 ----
         item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
             UbSectionHeader(title = "工具", trailing = "共 ${tools.size} 个")

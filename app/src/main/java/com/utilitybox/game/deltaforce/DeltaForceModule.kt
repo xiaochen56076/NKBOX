@@ -67,6 +67,16 @@ object DailyCodeProvider : ToolProvider {
     override fun screen(nav: ToolNavActions, modifier: Modifier) {
         DailyCodeScreen(modifier = modifier)
     }
+
+    /**
+     * ★ P11 补 79：今日密码提供一个**首页摘要**（用户要求免去一次点击）。
+     *
+     * 首页只认识 `homeSummary` 这个槽位，不知道里面是"今日密码" ——
+     * 具体渲染留在本工具自己的包里（见 `DailyCodeSummaryRow`）。
+     */
+    override val homeSummary: (@Composable () -> Unit)? = {
+        com.utilitybox.game.deltaforce.dailycode.DailyCodeSummaryRow()
+    }
 }
 
 object ItemPriceProvider : ToolProvider {

@@ -88,8 +88,13 @@ fun GachaStatsScreen(
     //   所以这里**不需要**再把结果往下传。
     LaunchedEffect(Unit) { WuwaAvatarIndex.ensureLoaded() }
 
-    // ★ remember：只在 records 真的变了才重算。滑动/切换 tab 都不该重跑。
-    val g = remember(records) { computeInsights(records) }
+    // ★ P11 补 100：常驻名单（用户填的）也参与计算。
+    //   读的是 Compose 状态 —— 用户填完名单，这里自动重算、页面自动刷新，
+    //   不需要重新进页面或重启。
+    val roster = com.utilitybox.game.wutheringwaves.kuro.GachaStandardRoster.names
+
+    // ★ remember：只在 records 或名单真的变了才重算。滑动/切换 tab 都不该重跑。
+    val g = remember(records, roster) { computeInsights(records, roster) }
 
     val pools = remember(g) { g.perPool }
     var selected by remember { mutableIntStateOf(0) }
@@ -474,18 +479,24 @@ private fun UpCard(g: GachaInsights) {
                     Text(text = "样本不足，暂不计算", style = t.bodyLarge, color = c.textPrimary)
                 }
                 Text(
-                    text = "判定「这次出的五星是 UP 还是歪」需要一个常驻五星名单，" +
-                        "而这份名单是从你的常驻池记录里推导出来的 —— " +
-                        "目前只推导出 ${g.standardSampleSize} 个（需要至少 4 个）。",
+                    text = "判定「这次出的五星是 UP 还是歪」需要一个常驻五星名单。" +
+                        "这份名单现在有 ${g.standardSampleSize} 个（需要至少 4 个）。",
                     style = t.caption,
                     color = c.textSecondary,
                 )
                 Text(
                     text = "名单不够大时，本来就在常驻池里的角色会被误判成 UP。" +
-                        "实测这份数据会算出 89.5% 的不歪率 —— 那不是统计，是错的。" +
-                        "在常驻池多抽几次、名单够了，这里会自动显示。",
+                        "实测这份数据会算出 89.5% 的不歪率 —— 那不是统计，是错的。",
                     style = t.caption,
                     color = c.textTertiary,
+                )
+                // ★ P11 补 100：给出**让它变可用**的操作，而不是只解释为什么不可用。
+                //   名单拿不到任何接口数据（wiki 无卡池分类、游戏接口无 UP 字段），
+                //   所以提供一个能自己填的入口。
+                Text(
+                    text = "👉 回上一页填写「常驻五星名单」，这里就会立刻算出不歪率。",
+                    style = t.caption,
+                    color = c.accent,
                 )
             } else {
                 Row(

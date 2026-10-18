@@ -54,6 +54,10 @@ class UbApplication : Application() {
         // 唤取记录的**历史快照**（P11 补 97）。每次导入存一份，可点进去看往期。
         com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore.install(this)
 
+        // 常驻五星名单（P11 补 100）。用户填的**游戏事实**，
+        // 用于判定活动池里的五星是「UP」还是「歪」。
+        com.utilitybox.game.wutheringwaves.kuro.GachaStandardRoster.install(this)
+
         // ★ 老用户升级迁移：把已有的当前记录存成**第一份历史快照**。
         //   不这么做的话，升级后「历史记录」区是空的，
         //   用户会以为功能没生效 —— 而数据其实就在旁边躺着。

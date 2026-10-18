@@ -43,6 +43,73 @@ class GachaInsightsTest {
         assertTrue(g.fiveStarPulls.isEmpty())
     }
 
+    // -----------------------------------------------------------------------
+    // P11 补 100：用户填的「常驻名单」参与判断 UP / 歪
+    //
+    // ★ 这组测试锁的是**判定能不能用**，而不是判得准不准 ——
+    //   名单本身是用户提供的游戏事实，代码只负责按名单做数学。
+    // -----------------------------------------------------------------------
+
+    /** 常驻池只出过 1 个五星（维里奈），活动池出了两个五星 */
+    private fun sampleWithOneStandard(): List<GachaRecord> = listOf(
+        r(3, "维里奈", 5, "2026-10-01 10:00:00"),
+        r(1, "忌炎", 5, "2026-10-02 10:00:00"),
+        r(1, "卡卡罗", 5, "2026-10-03 10:00:00"),
+    )
+
+    @Test
+    fun `没有名单时 一律不判 UP 或歪`() {
+        val g = computeInsights(sampleWithOneStandard())
+        // 只有 1 个推导出来的常驻，低于门槛 4
+        assertEquals(1, g.standardSampleSize)
+        assertFalse(g.upStatsReliable)
+        assertTrue(
+            "名单不足时必须全部 null —— 否则常驻角色会被判成 UP，算出假的不歪率",
+            g.fiveStarPulls.filter { it.poolType == 1 }.all { it.isUp == null },
+        )
+        assertNull(g.winRate)
+    }
+
+    @Test
+    fun `填了名单后 不在名单里的判 UP 在名单里的判歪`() {
+        val roster = setOf("维里奈", "卡卡罗", "鉴心", "安可")
+        val g = computeInsights(sampleWithOneStandard(), roster)
+
+        assertTrue("名单够了，指标必须可用", g.upStatsReliable)
+
+        val event = g.fiveStarPulls.filter { it.poolType == 1 }.associateBy { it.name }
+        assertEquals("忌炎 不在常驻名单 → UP", true, event["忌炎"]!!.isUp)
+        assertEquals("卡卡罗 在常驻名单 → 歪", false, event["卡卡罗"]!!.isUp)
+    }
+
+    @Test
+    fun `名单和常驻池推导取并集`() {
+        val roster = setOf("卡卡罗", "鉴心", "安可")
+        val g = computeInsights(sampleWithOneStandard(), roster)
+
+        // 维里奈来自常驻池推导，其余 3 个来自名单
+        assertEquals("并集应当是 4 个", 4, g.standardSampleSize)
+        assertTrue(g.upStatsReliable)
+    }
+
+    @Test
+    fun `名单足够时 不歪率按活动池五星算`() {
+        val roster = setOf("维里奈", "卡卡罗", "鉴心", "安可")
+        val g = computeInsights(sampleWithOneStandard(), roster)
+
+        // 活动池 2 个五星：忌炎(UP) / 卡卡罗(歪) → 50%
+        assertEquals(0.5, g.winRate!!, 0.0001)
+    }
+
+    @Test
+    fun `用户填空白或分隔符混乱时 名单解析仍然正确`() {
+        assertEquals(
+            setOf("维里奈", "卡卡罗", "鉴心", "安可"),
+            GachaStandardRoster.parse(" 维里奈 , 卡卡罗、鉴心\n安可 \n\n"),
+        )
+        assertTrue("只有空白应当解析成空集", GachaStandardRoster.parse("   \n ,、 ").isEmpty())
+    }
+
     @Test
     fun `各稀有度计数正确`() {
         val recs = listOf(

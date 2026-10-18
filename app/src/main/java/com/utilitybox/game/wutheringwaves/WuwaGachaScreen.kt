@@ -30,10 +30,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.utilitybox.core.design.*
 import com.utilitybox.game.wutheringwaves.kuro.GachaHistoryStore
 import com.utilitybox.game.wutheringwaves.kuro.GachaResult
 import com.utilitybox.game.wutheringwaves.kuro.GachaSnapshotMeta
+import com.utilitybox.game.wutheringwaves.kuro.GachaStandardRoster
 import com.utilitybox.game.wutheringwaves.kuro.GachaStats
 import com.utilitybox.game.wutheringwaves.kuro.WuwaGachaApi
 import com.utilitybox.game.wutheringwaves.kuro.WuwaGachaStore
@@ -98,6 +100,26 @@ fun WuwaGachaScreen(
 
     // ★ P11 补 97：历史快照列表（每次导入存一份，可点进去看往期）
     var history by remember { mutableStateOf(GachaHistoryStore.list()) }
+    // ★ P11 补 100：常驻五星名单的编辑弹窗
+    var rosterOpen by remember { mutableStateOf(false) }
+    var rosterText by remember { mutableStateOf(GachaStandardRoster.names.joinToString("\n")) }
+
+    // ★ 常驻名单编辑弹窗。
+    //   放在"查看往期"的早退之前 —— 这个弹窗只在主页面用得到，
+    //   往期视图里不需要，跟着早退一起关掉正好。
+    if (rosterOpen) {
+        RosterDialog(
+            initial = rosterText,
+            onDismiss = { rosterOpen = false },
+            onSave = { text ->
+                GachaStandardRoster.save(text)
+                rosterText = GachaStandardRoster.names.joinToString("\n")
+                rosterOpen = false
+                notice = "常驻名单已保存（${GachaStandardRoster.names.size} 个）"
+            },
+        )
+    }
+
     // 正在查看的往期快照；null 表示看当前记录
     var viewing by remember { mutableStateOf<GachaSnapshotMeta?>(null) }
 
@@ -332,6 +354,33 @@ fun WuwaGachaScreen(
             }
         }
 
+        // ---- 常驻五星名单（P11 补 100）----
+        //
+        // 为什么让用户填：判定「UP 还是歪」必须先知道哪些五星是常驻，
+        // 而这个数据拿不到（wiki 没有卡池分类、游戏接口没有 UP 字段）。
+        // 常驻池里抽到过的会自动计入，这里补上还没抽到过的。
+        Spacer(Modifier.height(s.s))
+        SectionCard {
+            Column {
+                UbNavRow(
+                    title = "常驻五星名单",
+                    icon = UbIcon.Check,
+                    onClick = { rosterOpen = true },
+                    trailingText = if (GachaStandardRoster.names.isEmpty()) {
+                        "未填"
+                    } else {
+                        "${GachaStandardRoster.names.size} 个"
+                    },
+                )
+                Text(
+                    text = "填了才能算「歪」。常驻池抽到过的会自动计入，不用重复填。",
+                    style = t.caption,
+                    color = c.textTertiary,
+                    modifier = Modifier.padding(horizontal = s.screenH, vertical = s.xs),
+                )
+            }
+        }
+
         // ---- 历史记录（P11 补 97）----
         //
         // 用户要的形态（参考图）：一行一份存档，显示「账号 · 日期」，点进去看往期。
@@ -439,6 +488,66 @@ private fun GachaRow(r: com.utilitybox.game.wutheringwaves.kuro.GachaRecord) {
             style = t.bodyMedium,
             color = rarityColor(r.rarity),
         )
+    }
+}
+
+/**
+ * 常驻五星名单编辑弹窗（P11 补 100）。
+ *
+ * ★ 用**真正的 Dialog**（平台自带遮罩），和刷新间隔选择器一致。
+ *
+ * ★ 分隔符不做限制：用户多半是从公告里整段粘过来，
+ *   换行 / 逗号 / 顿号 / 空格都能切（见 `GachaStandardRoster.parse`）。
+ */
+@Composable
+private fun RosterDialog(
+    initial: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    val c = LocalUbColors.current
+    val s = LocalUbSpacing.current
+    val t = LocalUbTypography.current
+    val r = LocalUbRadius.current
+    var text by remember { mutableStateOf(initial) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(r.cardLarge))
+                .background(c.bgElevated)
+                .padding(s.cardPad),
+            verticalArrangement = Arrangement.spacedBy(s.s),
+        ) {
+            Text(text = "常驻五星名单", style = t.titleMedium, color = c.textPrimary)
+            Text(
+                text = "写下常驻池里的五星角色名，一行一个或用逗号隔开。" +
+                    "这些角色在活动池出现时会被判成「歪」。",
+                style = t.caption,
+                color = c.textTertiary,
+            )
+            UbTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                placeholder = "维里奈\n卡卡罗\n鉴心\n安可",
+                singleLine = false,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(s.s, Alignment.End),
+            ) {
+                UbTextButton(label = "取消", onClick = onDismiss)
+                UbPrimaryButton(
+                    label = "保存",
+                    enabled = GachaStandardRoster.parse(text).isNotEmpty(),
+                    onClick = { onSave(text) },
+                )
+            }
+        }
     }
 }
 

@@ -176,19 +176,32 @@ private val TIME_FMT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
  *
  * ★ `records` 的顺序**不影响结果** —— 内部先按时间排序。
  *   这样调用方不必关心缓存里是什么顺序。
+ *
+ * @param extraStandardNames 用户在设置里填的**常驻五星名单**（P11 补 100）。
+ *   与"常驻池里抽到过的五星"取**并集**：
+ *   · 抽到过的 → 一定是常驻（机器事实）
+ *   · 用户填的 → 补上还没抽到过的那些
+ *   不填也能用，只是覆盖面小；填了 UP / 歪 判定就是完整的。
  */
-fun computeInsights(records: List<GachaRecord>): GachaInsights {
+fun computeInsights(
+    records: List<GachaRecord>,
+    extraStandardNames: Set<String> = emptySet(),
+): GachaInsights {
     // 按时间排序（字符串排序对 `yyyy-MM-dd HH:mm:ss` 就是时间序）
     val all = records.sortedBy { it.time }
     if (all.isEmpty()) return emptyGachaInsights()
 
     val five = all.filter { it.rarity == 5 }
 
-    // ---- 常驻名单：从常驻池的五星推导 ----
+    // ---- 常驻名单：常驻池抽到过的 ∪ 用户填写的 ----
+    //
+    // ★ 两者来源不同，但都是**事实**：
+    //   前者是"我在常驻池里抽到了他"，后者是"用户告诉我他是常驻"。
+    //   取并集比任何单边都准。
     val standardNames = all
         .filter { it.poolType in STANDARD_POOLS && it.rarity == 5 }
         .map { it.name }
-        .toSet()
+        .toSet() + extraStandardNames
 
     // ---- 逐个五星：算出"垫了多少抽" ----
     // ★ 按池分别计数：一个池的保底不会被另一个池消耗

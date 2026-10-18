@@ -1,6 +1,7 @@
 package com.utilitybox.game.wutheringwaves
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.utilitybox.core.design.LocalUbColors
 import com.utilitybox.core.design.LocalUbRadius
@@ -101,6 +103,12 @@ fun GachaStatsScreen(
     ) {
         OverviewCard(g)
 
+        // ★ P11 补 98：每个卡池一张汇总卡（横向滑动）。
+        //   参考图的结构是「先看每个池的汇总，再看某个池的明细」，
+        //   而原来只有一张总览卡把四个池糊在一起。
+        Spacer(Modifier.height(LocalUbSpacing.current.s))
+        PoolCardRow(g)
+
         if (pools.isNotEmpty()) {
             Spacer(Modifier.height(LocalUbSpacing.current.s))
             PoolTabs(
@@ -155,6 +163,84 @@ private fun BigStat(label: String, value: String, color: Color) {
         Text(text = value, style = t.numericLarge, color = color)
         Spacer(Modifier.height(2.dp))
         Text(text = label, style = t.caption, color = c.textTertiary)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 分池卡片行（P11 补 98）
+// ---------------------------------------------------------------------------
+
+/**
+ * 每个卡池一张小卡片，横向滑动。
+ *
+ * ### 为什么加这一块
+ *
+ * 用户要求「界面模仿第三张图片做的更精细」—— 参考图的核心结构是
+ * **「先给每个卡池一张汇总卡（抽数 / 出卡 / 平均），再在下面看明细」**，
+ * 而原来只有一张总览卡把四个池的数字全糊在一起，
+ * 想知道"武器池单独花了多少"必须先切到对应 tab。
+ *
+ * ### 只用真实数字
+ *
+ * · 抽数、五星数：直接来自 [PoolSummary]
+ * · 平均出金：该池每个五星的 `pityUsed` 求平均；**没有五星就是「—」**，
+ *   不写 0、不写 ∞、也不按"欧非"编一个评分
+ *
+ * ★ 参考图那张卡里还有「生涯评分 / 称号」这类东西 —— 本工程**不做**：
+ *   那是平台自己的评分模型，我们没有它的公式，凭空算一个数就是编数据。
+ */
+@Composable
+private fun PoolCardRow(g: GachaInsights) {
+    val c = LocalUbColors.current
+    val s = LocalUbSpacing.current
+    val t = LocalUbTypography.current
+    val r = LocalUbRadius.current
+
+    if (g.perPool.isEmpty()) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = s.screenH),
+        horizontalArrangement = Arrangement.spacedBy(s.s),
+    ) {
+        g.perPool.forEach { p ->
+            val pulls = g.fiveStarPulls.filter { it.poolType == p.poolType }
+            // 平均出金：该池五星的垫抽数均值。没有五星 → null（显示「—」）
+            val avg = pulls.takeIf { it.isNotEmpty() }?.map { it.pityUsed }?.average()
+
+            Column(
+                modifier = Modifier
+                    .width(140.dp)
+                    .clip(RoundedCornerShape(r.card))
+                    .background(c.bgElevated)
+                    .padding(s.m),
+            ) {
+                Text(
+                    text = p.label,
+                    style = t.caption,
+                    color = c.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(s.xs))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(text = "${p.total}", style = t.numericLarge, color = c.textPrimary)
+                    Text(
+                        text = " 抽",
+                        style = t.caption,
+                        color = c.textTertiary,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                }
+                Spacer(Modifier.height(s.xs))
+                Row(horizontalArrangement = Arrangement.spacedBy(s.s)) {
+                    MiniStat("五星", p.fiveStar.toString(), c.warning)
+                    MiniStat("平均", avg?.let { fmt(it) } ?: "—", c.textPrimary)
+                }
+            }
+        }
     }
 }
 

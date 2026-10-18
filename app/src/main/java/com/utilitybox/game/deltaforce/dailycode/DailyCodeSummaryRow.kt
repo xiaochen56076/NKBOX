@@ -1,5 +1,7 @@
 package com.utilitybox.game.deltaforce.dailycode
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,7 +71,26 @@ fun DailyCodeSummaryRow(modifier: Modifier = Modifier) {
         //   **双重缩进**，卡片会比上面的英雄卡左右各窄 64px（用户圈出来说没对齐）。
         horizontalPadding = 0.dp,
     ) {
-        Column(modifier = Modifier.padding(horizontal = s.cardPad, vertical = s.m)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = s.cardPad, vertical = s.m)
+                // ★ P11 补 90：状态切换时**高度平滑展开**（用户反馈
+                //   「加载过渡不太好，直接割裂地显示，而不是平滑展开下去的动画」）。
+                //
+                //   原来：「加载中…」是一行，数据回来后一次变成 6 行 ——
+                //   卡片高度瞬间跳变，下面的工具卡片也跟着瞬移，观感很割裂。
+                //
+                //   `animateContentSize` 让容器高度按动画补间，
+                //   卡片是**从上往下长出来**的，下面的内容同步平滑下移。
+                //   ★ 只动高度、不动内容透明度：内容替换本身足够简单
+                //     （一行提示 → 一组密码行），淡入淡出反而显得拖沓。
+                .animateContentSize(
+                    animationSpec = tween(
+                        durationMillis = 320,
+                        easing = com.utilitybox.core.design.UbEaseEnter,
+                    ),
+                ),
+        ) {
             // ---- 标题行 ----
             Row(verticalAlignment = Alignment.CenterVertically) {
                 UbIcons.Icon(icon = UbIcon.Key, tint = c.accent, size = 16.dp)

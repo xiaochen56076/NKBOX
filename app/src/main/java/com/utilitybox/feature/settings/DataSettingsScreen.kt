@@ -238,13 +238,14 @@ private fun IntervalPickerDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(s.s),
             ) {
-                androidx.compose.material3.OutlinedTextField(
+                // ★ P11 补 94：改用 `UbTextField` —— 直接用的 OutlinedTextField
+                //   在深色模式下文字是 Material3 默认的近黑色，和背景一样看不见。
+                UbTextField(
                     value = custom,
                     // 只收数字：非数字直接丢弃，比事后校验更早拦住错误
                     onValueChange = { input -> custom = input.filter { it.isDigit() }.take(4) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    placeholder = { Text("例如 45", style = t.bodyMedium, color = c.textTertiary) },
+                    placeholder = "例如 45",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 UbPrimaryButton(

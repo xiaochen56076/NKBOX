@@ -30,6 +30,7 @@ import com.utilitybox.core.design.LocalUbRadius
 import com.utilitybox.core.design.LocalUbSize
 import com.utilitybox.core.design.LocalUbSpacing
 import com.utilitybox.core.design.LocalUbTypography
+import com.utilitybox.core.design.UbTextField
 import com.utilitybox.core.design.SectionCard
 import com.utilitybox.core.design.UbDivider
 import com.utilitybox.core.design.UbIcon
@@ -335,12 +336,12 @@ private fun CloudField(
     val c = LocalUbColors.current
     val r = LocalUbRadius.current
     val t = LocalUbTypography.current
-    OutlinedTextField(
+    // ★ P11 补 94：改用 `UbTextField`（深色模式下文字色必须显式给）
+    UbTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, style = t.caption) },
-        placeholder = { Text(hint, style = t.caption, color = c.textTertiary) },
-        singleLine = true,
+        label = label,
+        placeholder = hint,
         visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
         shape = RoundedCornerShape(r.button),
         modifier = Modifier.fillMaxWidth(),

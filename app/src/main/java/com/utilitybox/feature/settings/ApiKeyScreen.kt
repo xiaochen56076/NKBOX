@@ -123,16 +123,18 @@ fun ApiKeyScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(horizontal = s.screenH, vertical = s.m),
                 verticalArrangement = Arrangement.spacedBy(s.s),
             ) {
-                OutlinedTextField(
+                // ★ P11 补 94：改用 `UbTextField`。
+                //   原来只设了**容器色**，没设**文字色** —— 深色模式下文字仍是
+                //   Material3 默认的近黑色，和容器一样看不见。
+                UbTextField(
                     value = input,
                     onValueChange = {
                         input = it
                         saved = false
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("API Key") },
-                    placeholder = { Text("粘贴你的 API Key") },
-                    singleLine = true,
+                    label = "API Key",
+                    placeholder = "粘贴你的 API Key",
                     // 默认遮蔽，避免旁人看到
                     visualTransformation = if (visible) {
                         VisualTransformation.None
@@ -142,10 +144,6 @@ fun ApiKeyScreen(modifier: Modifier = Modifier) {
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
-                    ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = c.bgElevated,
-                        unfocusedContainerColor = c.bgElevated,
                     ),
                 )
 

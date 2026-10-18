@@ -92,12 +92,12 @@ fun LoginScreen(
                 style = t.caption,
                 color = c.textTertiary,
             )
-            androidx.compose.material3.OutlinedTextField(
+            // ★ P11 补 94：改用 `UbTextField`（深色模式下文字色必须显式给）
+            UbTextField(
                 value = nickname,
                 onValueChange = { nickname = it.take(20) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("给自己起个名字", style = t.bodyMedium, color = c.textTertiary) },
+                placeholder = "给自己起个名字",
             )
             UbPrimaryButton(
                 label = "使用这个昵称",

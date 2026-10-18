@@ -50,10 +50,24 @@ class DailyCodeHolder(
     private var inFlight: Boolean = false
 
     init {
-        refresh()
+        // ★ P11 补 91：**首次进入页面允许走缓存**（同一天内不请求网络）。
+        //   这是修"每次进页面都重新加载"的关键一半 ——
+        //   另一半在 `DailyCodeRepository.load` 的缓存短路。
+        refresh(forceRefresh = false)
     }
 
-    fun refresh(today: LocalDate = LocalDate.now(ZoneId.systemDefault())) {
+    /**
+     * 刷新。
+     *
+     * @param forceRefresh
+     *   - `true`（默认）：**强制走网络**。手动点「刷新」、自动刷新定时器都必须用这个，
+     *     否则用户点了刷新却读到缓存，会以为按钮坏了。
+     *   - `false`：允许同一天内直接读缓存。**只有首次进入页面**用这个。
+     */
+    fun refresh(
+        today: LocalDate = LocalDate.now(ZoneId.systemDefault()),
+        forceRefresh: Boolean = true,
+    ) {
         // 已在刷新中就不再叠加一次（自动刷新与手动刷新共用这个入口）
         if (inFlight) return
         inFlight = true
@@ -61,7 +75,7 @@ class DailyCodeHolder(
             state = UiState.Loading
             // 仓库已经保证不抛异常（所有失败都归为 DailyCodeState.Failed），
             // 但这里仍不做 try/catch —— 若真抛了，那是仓库的 bug，应当暴露而不是吞掉。
-            val result = repo.load(today)
+            val result = repo.load(today, forceRefresh = forceRefresh)
             state = UiState.Success(result)
             hasLoaded = true
             inFlight = false

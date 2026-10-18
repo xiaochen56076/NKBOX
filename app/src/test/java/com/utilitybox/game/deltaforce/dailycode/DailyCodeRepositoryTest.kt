@@ -325,4 +325,89 @@ class DailyCodeRepositoryTest {
         repo(http).load(today)
         assertEquals("test-key", http.lastHeaders["X-API-Key"])
     }
+
+    // -----------------------------------------------------------------------
+    // P11 补 91：同一天内缓存优先（用户要求「不用每次切界面都重新加载」）
+    //
+    // ★ 这组测试锁的是**请求次数**，不是返回值 ——
+    //   返回 Today 这条老测试已经覆盖了，但它**抓不到"又多打了一次网络"**这个回归。
+    //   以前每次进页面都会闪一下「加载中…」，根因就是这里没有短路。
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `同一天内再次加载 直接用缓存且不再请求网络`() = runTest {
+        val cache = FakeCache()
+        val http = FakeHttpClient.ok()
+        val r = repo(http, cache)
+
+        // 第一次：没有缓存 → 必须走网络
+        val first = r.load(today)
+        assertTrue(first is DailyCodeState.Today)
+        assertEquals("首次加载必须请求网络", 1, http.callCount)
+
+        // 第二次（例如用户切到鸣潮再切回来）：缓存是今天的 → 不该再请求
+        val second = r.load(today)
+        assertEquals("同一天内不得重复请求网络", 1, http.callCount)
+        assertTrue("仍应返回当天有效态", second is DailyCodeState.Today)
+        assertEquals(
+            "返回的密码必须与第一次一致",
+            (first as DailyCodeState.Today).codes,
+            (second as DailyCodeState.Today).codes,
+        )
+    }
+
+    @Test
+    fun `跨天后不再用缓存 会重新请求网络`() = runTest {
+        val cache = FakeCache()
+        val http = FakeHttpClient.ok()
+        val r = repo(http, cache)
+
+        // 昨天抓的缓存
+        r.load(yesterday)
+        assertEquals(1, http.callCount)
+
+        // 今天再进页面 —— 缓存已跨天，必须重新取
+        val state = r.load(today)
+        assertEquals("跨天后必须重新请求网络", 2, http.callCount)
+        assertTrue("跨天重新取到的是当天数据", state is DailyCodeState.Today)
+    }
+
+    @Test
+    fun `forceRefresh 为 true 时 即使缓存是今天也请求网络`() = runTest {
+        val cache = FakeCache()
+        val http = FakeHttpClient.ok()
+        val r = repo(http, cache)
+
+        r.load(today)
+        assertEquals(1, http.callCount)
+
+        // 用户手动点「刷新」/ 自动刷新定时器走的就是这条
+        r.load(today, forceRefresh = true)
+        assertEquals(
+            "手动刷新必须真的打网络，否则用户会以为按钮坏了",
+            2,
+            http.callCount,
+        )
+    }
+
+    @Test
+    fun `缓存命中时 更新时刻取自缓存而非当前时间`() = runTest {
+        val cache = FakeCache()
+        repo(FakeHttpClient.ok(), cache).load(today)
+
+        // 把缓存里的时间戳改成一个固定时刻，再读
+        val entry = cache.read(key)!!
+        cache.write(
+            key,
+            entry.copy(fetchedAtMillis = today.atStartOfDay(ZoneId.systemDefault())
+                .plusHours(8).plusMinutes(5).toInstant().toEpochMilli()),
+        )
+
+        val state = repo(FakeHttpClient.ok(), cache).load(today) as DailyCodeState.Today
+        assertEquals(
+            "读到缓存时必须显示缓存写入的时刻，不能显示\"现在\"（那会让时间戳每次都在变）",
+            "08:05",
+            state.updatedAtLabel,
+        )
+    }
 }

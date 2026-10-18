@@ -34,9 +34,7 @@ fun AccountManagerScreen(
     cloudLoggedIn: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val c = LocalUbColors.current
     val s = LocalUbSpacing.current
-    val t = LocalUbTypography.current
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -53,13 +51,12 @@ fun AccountManagerScreen(
             }
         }
 
-        Text(
-            // ★ 不要在这里写 Markdown 的 ** 加粗 —— Compose 的 Text **不解析 Markdown**，
-            //   星号会原样渲染出来。这是实测在模拟器上看到的缺陷（P11 补 40）。
-            text = "云备份会把唤取记录存到你自己的网盘里。" +
-                "换手机或清空数据后，登录一次就能把记录拉回来。",
-            style = t.caption,
-            color = c.textTertiary,
-        )
+        // ★ P11 补 86：删除下方那段灰色小字说明（用户要求「这个界面下面的小字去掉」）。
+        //
+        //   原文：「云备份会把唤取记录存到你自己的网盘里。换手机或清空数据后，
+        //   登录一次就能把记录拉回来。」
+        //
+        //   ★ 删除的只是**首页列表上的说明文案**。云备份页自己仍然会说明它做什么 ——
+        //     用户点进去就能看到，信息没有丢失，只是不在入口处重复。
     }
 }

@@ -228,22 +228,44 @@ private fun WuwaLogin(
 
         Spacer(Modifier.height(s.s))
 
-        // ★ 图鉴和唤取记录都放在登录**之前**：两者都不需要库街区账号。
+        // ★★ P11 补 78：图鉴 / 唤取记录改成**块状卡片**（用户要求
+        //   「这个唤取记录和图鉴可以做成和三角洲那里一样的块状」）。
+        //
+        //   原来是一行一条的列表项（`UbNavRow` + `UbDivider`），
+        //   和三角洲页的工具卡（`UbToolCard` 两列网格）视觉上完全是两套语言：
+        //   那边是**可点的大色块**，这边是**列表行**，切 tab 时观感割裂。
+        //
+        //   现在用同一个组件 `UbToolCard`，并排两列 —— 和三角洲工具区一致。
+        //   ★ 不用 ListView 的 `LazyVerticalGrid`：这一页顶层是 `Column + verticalScroll`，
+        //     嵌套一个可滚动网格会冲突。只有两张卡，`Row + weight` 就够，
+        //     而且两张卡等宽、间距和三角洲的列间距（`s.m`）一致。
+        //
+        // ★ 仍然放在登录**之前**：两者都不需要库街区账号，
         //   藏在登录后面会让没登录的用户以为用不了。
-        SectionCard {
-            Column {
-                UbNavRow(
+        UbSectionHeader(title = "功能")
+        Spacer(Modifier.height(s.s))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(s.m),
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                UbToolCard(
                     title = "鸣潮图鉴",
+                    subtitle = "角色与武器",
                     icon = UbIcon.Database,
+                    statusColor = c.textTertiary,
+                    enabled = true,
                     onClick = onOpenWiki,
-                    trailingText = "",
                 )
-                UbDivider()
-                UbNavRow(
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                UbToolCard(
                     title = "唤取记录",
+                    subtitle = "抽卡历史",
                     icon = UbIcon.Clock,
+                    statusColor = c.textTertiary,
+                    enabled = true,
                     onClick = onOpenGacha,
-                    trailingText = "",
                 )
             }
         }

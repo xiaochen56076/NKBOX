@@ -1,11 +1,13 @@
 package com.utilitybox.feature.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,7 +26,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.utilitybox.core.design.*
 import com.utilitybox.core.secret.ApiKeyProvider.displayLabel
@@ -318,14 +324,29 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(s.xl))
 
         // ---- 应用标识（居中）----
+        //
+        // ★ P11 补 85：改用**应用自己的图标**（用户：「这个界面的图标就使用应用图标即可」）。
+        //
+        //   ★ 不能直接 `painterResource(R.mipmap.ic_launcher)` 塞进 72dp：
+        //   那是个**自适应图标** —— 108dp 画布、中心 72dp 才是安全区
+        //   （见 `mipmap-anydpi-v26/ic_launcher.xml`：背景色 + 前景图）。
+        //   整张塞进去，图形只占 48dp，比桌面上的图标小一圈。
+        //
+        //   所以按系统规则自己合成：背景色铺满 + 前景图放大 1.5 倍（108/72），
+        //   图形视觉大小就和桌面一致，超出的部分由 clip 裁掉。
         Box(
             modifier = Modifier
                 .size(72.dp)
                 .clip(RoundedCornerShape(r.cardLarge))
-                .background(c.accentSoft),
+                .background(colorResource(id = com.utilitybox.R.color.ic_launcher_background)),
             contentAlignment = Alignment.Center,
         ) {
-            UbIcons.Icon(icon = UbIcon.Game, tint = c.accent, size = 36.dp)
+            Image(
+                painter = painterResource(id = com.utilitybox.R.mipmap.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().scale(1.5f),
+                contentScale = ContentScale.Crop,
+            )
         }
         Spacer(Modifier.height(s.m))
         Text(text = UbStrings.appName, style = t.titleLarge, color = c.textPrimary)

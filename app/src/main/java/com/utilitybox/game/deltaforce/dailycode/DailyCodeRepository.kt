@@ -193,8 +193,18 @@ class DailyCodeRepository(
         const val GAME_ID = "deltaforce"
         const val CACHE_TYPE = "dailycode"
 
-        /** 缓存结构版本。**改动 payload 格式时必须 +1**，旧缓存会被安全丢弃。 */
-        const val SCHEMA_VERSION = 1
+        /**
+         * 缓存结构版本。**改动 payload 格式时必须 +1**，旧缓存会被安全丢弃。
+         *
+         * 历史：
+         * - 1：初版
+         * - 2：P11 补 91 —— `fetchedAtMillis` 的语义从「当天零点」改成
+         *      「当天 + 真实时分」。payload 格式没变，但**这个字段的含义变了**：
+         *      旧缓存按新代码读出来会显示「更新于 00:00」（假的时间）。
+         *      所以必须整体丢弃一次，让它们重新抓一次。
+         *      ★ 这类"格式没变但语义变了"同样要升版本 —— 否则会显示错误数据。
+         */
+        const val SCHEMA_VERSION = 2
 
         // LocalDate <-> epochMillis（用系统时区的当天零点，只用于"哪一天"的比较）
         private fun LocalDate.toEpochMillis(): Long =

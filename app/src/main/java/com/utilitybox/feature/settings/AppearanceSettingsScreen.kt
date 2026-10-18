@@ -189,12 +189,7 @@ fun AppearanceSettingsScreen(
                         AccentSwatch(
                             color = shownColor(preset),
                             label = preset.label,
-                            selected = when {
-                                // "默认"命中条件：没有自定义种子
-                                preset.seed == null -> accentSeed == null
-                                accentSeed == null -> false
-                                else -> sameHueFamily(preset.seed, accentSeed)
-                            },
+                            selected = isAccentPresetSelected(preset.seed, accentSeed),
                             onClick = { onAccentChange(preset.seed) },
                         )
                     }
@@ -339,35 +334,28 @@ private fun SplashPreview(path: String?) {
 }
 
 /**
- * 两个颜色是否"看起来是同一个预设"。
+ * 某个强调色预设是否处于**选中态**（P11 补 93）。
  *
- * ★ 不能直接 `==`：用户从色轮选出的颜色会被 [ubAccentFor] 按主题明度整形，
- *   落盘的是**用户选的原色**、而显示的是整形后的色，两者永远不相等，
- *   于是"自定义"永远高亮、预设永远不高亮 —— 选中态就废了。
+ * ### 为什么必须是精确相等
  *
- * ★★ 判定分两层（第一版只用了硬阈值，被单测抓出问题）：
+ * 这里原来用的是 `sameHueFamily`（同色系即算命中），于是「朱红」和「橙」
+ * 同属红色系，**两个预设会同时打勾**（用户截图反馈：
+ * 「这里的颜色有 bug，选一个会多选，不止这一个」）。
  *
- *   1. **两个都接近无色** → 都算"中性"，互相视为同一族。
- *      第一版写的是「饱和度 < 0.15 就算中性」，而灰蓝 `#6B7280` 的饱和度是
- *      0.164 —— 刚好卡在阈值外面，于是它和"更灰一点"的 `#7A818C`（0.129）
- *      被判成两族。**阈值卡在两个相邻颜色的中间，就是设计错了**。
- *   2. 否则按色相距离判定，且**饱和度越低容差越大** ——
- *      低饱和时色相本身就不稳定（RGB 的轻微变化会让色相大幅跳），
- *      用固定容差会产生"看起来一样却不算命中"的结果。
+ * 选中态表达的是「**就是这一个**」，不是「差不多这一类」。
+ * 模糊匹配适合"是否需要提示"这类柔性判断，用来决定勾选必然多选。
+ *
+ * ### 为什么比 hex 而不是直接比 `Color`
+ *
+ * 颜色可能在 HSV 转换、落盘往返中经历精度变化；按 8 位 RGB 比较
+ * 既稳定又足够精确。`ubHexOf` 输出的就是 6 位 RGB hex。
+ *
+ * ★ 抽成**纯函数**是为了能单测 —— 写在 composable 里就只能靠肉眼看截图。
  */
-internal fun sameHueFamily(a: Color, b: Color): Boolean {
-    /** 低于此饱和度视为"中性色"（石墨那类），色相没有意义 */
-    val neutralSat = 0.25f
-
-    val ha = UbHsv.fromRgb(a.red, a.green, a.blue)
-    val hb = UbHsv.fromRgb(b.red, b.green, b.blue)
-    val sa = ha[1]
-    val sb = hb[1]
-
-    if (sa < neutralSat && sb < neutralSat) return true
-
-    val d = kotlin.math.abs(ha[0] - hb[0])
-    val cyclic = minOf(d, 360f - d)
-    val tolerance = 12f + 40f * (1f - minOf(sa, sb))
-    return cyclic <= tolerance
+internal fun isAccentPresetSelected(presetSeed: Color?, accentSeed: Color?): Boolean = when {
+    // "默认"只有"没有自定义种子"时才选中
+    presetSeed == null -> accentSeed == null
+    // 自定义色状态下，任何预设都不选中
+    accentSeed == null -> false
+    else -> ubHexOf(presetSeed) == ubHexOf(accentSeed)
 }

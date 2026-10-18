@@ -1,9 +1,6 @@
 package com.utilitybox.core.settings
 
-import androidx.compose.ui.graphics.Color
-import com.utilitybox.feature.settings.sameHueFamily
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,33 +51,11 @@ class SplashImageStoreTest {
         assertTrue(SplashImageStore.sampleSizeFor(100000, 100000, 1600) >= 1)
     }
 
-    // -----------------------------------------------------------------------
-    // 预设高亮：sameHueFamily
-    // -----------------------------------------------------------------------
-
-    @Test
-    fun `同一色系会被认成同一个预设`() {
-        // 用户选的 #7C4DFF 与预设紫是同色系，即使明度不同也应判定命中
-        assertTrue(sameHueFamily(Color(0xFF7C4DFF), Color(0xFF8A5CFF)))
-    }
-
-    @Test
-    fun `相差很大的色相不会被误判`() {
-        assertFalse(sameHueFamily(Color(0xFFE03131), Color(0xFF0CA678)))
-        assertFalse(sameHueFamily(Color(0xFF2F6BFF), Color(0xFFF59F00)))
-    }
-
-    @Test
-    fun `色相环绕处也能正确判定`() {
-        // 350° 与 10° 实际只差 20°，但直接相减是 340 —— 必须走环形距离
-        val nearRed = Color(0xFFFF1A1A)
-        val alsoNearRed = Color(0xFFFF3319)
-        assertTrue(sameHueFamily(nearRed, alsoNearRed))
-    }
-
-    @Test
-    fun `近灰色按灰度互相判定 不与彩色混为一谈`() {
-        assertTrue(sameHueFamily(Color(0xFF6B7280), Color(0xFF7A818C)))
-        assertFalse(sameHueFamily(Color(0xFF6B7280), Color(0xFFE03131)))
-    }
+    // ★ P11 补 93：这里原有 4 个 `sameHueFamily` 的测试，**已随函数一起删除**。
+    //
+    //   它们锁的是一个**错误的行为**：「同一色系就算命中同一个预设」。
+    //   实测后果：外观页选「朱红」时「橙」也打勾（同属红色系）——用户截图反馈的 bug。
+    //
+    //   选中态需要的是"就是这一个"，判据只能是**精确相等**。
+    //   留着这些测试等于把错误行为固化成"契约"，所以一并删掉。
 }

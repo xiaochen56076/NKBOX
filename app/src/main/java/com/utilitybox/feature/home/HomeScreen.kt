@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -121,7 +122,18 @@ fun GameToolsScreen(
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = modifier.fillMaxWidth(),
+        // ★ P11 补 89：必须 `fillMaxSize()`，**不能只 `fillMaxWidth()`**。
+        //
+        //   实测症状（用户手机截图）：内容少的时候（比如「今日密码」还在加载、
+        //   或者用户关掉了几个工具）整个页面**垂直居中**，顶部空一大块 ——
+        //   因为只填宽度时网格高度 = 内容高度，父容器（AnimatedContent，满高）
+        //   就把它居中了。
+        //
+        //   实测数据（1080×2424 模拟器）：
+        //     可用高度 2282 − 内容高度 1862 = 420，上下各 210px —— 正好是居中。
+        //
+        //   `fillMaxSize()` 让网格**始终撑满父容器**，内容自然从顶部开始排。
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = s.screenH,
             end = s.screenH,

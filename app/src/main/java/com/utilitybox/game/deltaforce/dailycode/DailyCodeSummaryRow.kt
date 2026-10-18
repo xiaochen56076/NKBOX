@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.utilitybox.core.design.LocalUbColors
 import com.utilitybox.core.design.LocalUbSpacing
@@ -173,20 +175,43 @@ private fun CodeLine(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(s.xs),
     ) {
-        Text(text = mapName, style = t.caption, color = secondary)
-        Spacer(Modifier.width(s.xs))
+        // ★ P11 补 88：**密码右对齐成一列**（用户：「这个密码好歹对齐吧，你看别人都是对齐了的」）。
+        //
+        //   原来的问题：密码紧跟在名字后面（`Text(mapName); Text(code)`），
+        //   于是「零号大坝」和「潮汐监狱」名字宽度不同，密码的起点就参差不齐。
+        //
+        //   改法：
+        //   1. 名字 `weight(1f)` 吃掉剩余宽度 —— 把密码推到右侧；
+        //   2. 密码给**固定宽度** + `textAlign = End` —— 右边缘严格对齐；
+        //   3. 数字用 tabular figures（`tnum`）—— 每个数字等宽，
+        //      否则「1」和「0」宽度不同，4 位数字之间仍会差一两个像素。
         Text(
-            text = code,
-            style = t.bodyLarge,
-            color = accent,
-            // 密码是"要抄下来"的内容，字重加大 + 字距放宽，避免 0/O 混淆时看不清
+            text = mapName,
+            style = t.bodyMedium,
+            color = secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        // 占位保持右侧对齐稳定（无操作按钮）
-        Text(text = "", style = t.caption, color = primary)
+        Text(
+            text = code,
+            style = t.titleMedium.copy(fontFeatureSettings = "tnum"),
+            color = accent,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.width(CODE_COLUMN_WIDTH),
+        )
     }
 }
+
+/**
+ * 密码列的固定宽度。
+ *
+ * ★ 4 位数字在 `titleMedium` 下约 44dp，留到 88dp 是为了：
+ *   ① 数字和右边距之间留出呼吸感；
+ *   ② 将来出现 5~6 位密码时不会挤爆换行。
+ */
+private val CODE_COLUMN_WIDTH = 88.dp

@@ -86,7 +86,6 @@ fun GameToolsScreen(
     //   "写着 5 个工具、网格里只有 4 张卡"的假话。
     val all = UbToolRegistry.visibleToolsOf(gameId)
     val enabledCount = all.count { it.status == ToolStatus.ENABLED }
-    val experimentalCount = all.count { it.status == ToolStatus.EXPERIMENTAL }
     val pendingCount = all.count {
         it.status == ToolStatus.PENDING_SOURCE || it.status == ToolStatus.UNAVAILABLE
     }
@@ -202,31 +201,14 @@ fun GameToolsScreen(
             )
         }
 
-        // ---- 数据摘要（占满整行）----
-        item(key = "stats", span = { GridItemSpan(maxLineSpan) }) {
-            Column {
-                // ★ P11 补 87：删除「当前状态」小标题（用户要求去掉这类小字）。
-                //   数字行本身保留 —— 它是真实统计，不是装饰。
-                UbStatRow(
-                    stats = buildList {
-                        add(Triple("${all.size}", "工具总数", c.textPrimary))
-                        add(Triple("$enabledCount", "可使用", c.success))
-                        if (experimentalCount > 0) {
-                            add(Triple("$experimentalCount", "实验性", c.accent))
-                        }
-                        if (pendingCount > 0) {
-                            add(Triple("$pendingCount", "待接入", c.warning))
-                        }
-                    },
-                )
-                // ★ P11 补 82：删除了底部那行灰色小字
-                //   「数据来源与更新时间见各工具页底部。」（用户要求「灰色的小字删除，不用」）。
-                //
-                //   说明：这行原本是**来源声明**。删掉**不违反红线**
-                //   （没有伪造来源），而且各工具页自己的底部**仍保留**来源与更新时间 ——
-                //   那句话说的"见各工具页底部"依然成立，只是首页不再重复提醒。
-            }
-        }
+        // ★ P11 补 92：**删除底部统计行**（用户圈出来要求「这个去掉吧」）。
+        //
+        //   历史：这一整块（「4 工具总数 / 2 可使用 / 1 实验性 / 1 待接入」）
+        //   之前已经删掉了它的「当前状态」小标题，现在连数字行也一起去掉 ——
+        //   用户要的是干净的卡片网格，不需要这些重复统计
+        //   （同样的信息在身份卡的「4 个工具 · 2 个可用 · 1 个待接入」里已经有了）。
+        //
+        //   ★ 别再加回来：那行副信息已经覆盖同样的内容，再加就是重复。
     }
 
     // ★ 这里不再有任何尾部来源声明。

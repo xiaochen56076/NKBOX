@@ -122,9 +122,26 @@ class WuwaGachaTest {
 
     @Test
     fun `未知卡池类型如实标注 不猜名字`() {
-        assertEquals("角色活动唤取", WuwaGachaApi.poolLabel(1))
+        // ★ P11 补 101：显示名改成和社区工具一致的叫法（限定池 / 专武池 / …）
+        assertEquals("限定池", WuwaGachaApi.poolLabel(1))
+        assertEquals("专武池", WuwaGachaApi.poolLabel(2))
+        assertEquals("联动角色池", WuwaGachaApi.poolLabel(10))
         // 猜错会让用户以为记录丢了；如实标出类型号才是能排查的信息
         assertTrue(WuwaGachaApi.poolLabel(99).contains("99"))
+    }
+
+    @Test
+    fun `十个卡池的名字互不相同`() {
+        val names = WuwaGachaApi.POOL_TYPES.map { it.second }
+        assertEquals("池数量应保持 10 个", 10, names.size)
+        assertEquals(
+            "标签栏一项一个池，重名会出现两个同名标签、各自只有一部分数据 —— 看起来像丢数据。实际: $names",
+            names.size,
+            names.toSet().size,
+        )
+        // 类型号也不能重复，否则查询参数会指向同一个池
+        val types = WuwaGachaApi.POOL_TYPES.map { it.first }
+        assertEquals("类型号不能重复", types.size, types.toSet().size)
     }
 
     // -----------------------------------------------------------------------

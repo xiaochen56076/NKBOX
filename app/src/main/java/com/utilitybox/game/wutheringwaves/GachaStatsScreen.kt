@@ -44,7 +44,7 @@ import com.utilitybox.core.design.UbIcons
 import com.utilitybox.core.design.UbItemIcon
 import com.utilitybox.game.wutheringwaves.kuro.GachaInsights
 import com.utilitybox.game.wutheringwaves.kuro.GachaRecord
-import com.utilitybox.game.wutheringwaves.kuro.WuwaAvatarIndex
+import com.utilitybox.game.wutheringwaves.kuro.WuwaIconIndex
 import com.utilitybox.game.wutheringwaves.kuro.computeInsights
 import java.util.Locale
 
@@ -69,11 +69,12 @@ import java.util.Locale
  *    （排序 848 条 + 分段 + 逐条算垫抽），滑动时每帧都算一遍。
  * 2. 只渲染**当前选中池**的内容，不做 6 个池全量铺开。
  *
- * ### ★ 关于"角色头像"
+ * ### ★ 关于"角色头像 / 专武图标"
  *
- * 小黑盒那种头像是**游戏素材**，本工程没有、也不能凭空造（红线：不伪造资源）。
- * 所以这里用**首字圆形标记**（名字第一个字 + 稀有度配色）作为正式的占位设计，
- * 而不是拿一个通用图标冒充立绘，也不是留一块空白。
+ * P11 补 96 / 102 起，头像与武器图标来自库街区 wiki 的公开 `contentUrl`
+ * （共鸣者 1105 / 武器 1106），经 `WuwaIconIndex` 落盘缓存。
+ * 索引里**没有**的条目仍用**首字圆形标记**兜底 ——
+ * 不拿通用图标或别的图冒充，也不是留一块空白。
  */
 @Composable
 fun GachaStatsScreen(
@@ -82,11 +83,11 @@ fun GachaStatsScreen(
 ) {
     if (records.isEmpty()) return
 
-    // ★ P11 补 96：加载「角色名 → 头像」索引。
+    // ★ P11 补 96 / 102：加载「角色 / 武器名 → 图标」索引。
     //   只触发一次：对象内部自己去重（已加载/已过期/正在加载都会短路）。
-    //   加载完成后 `WuwaAvatarIndex.byName` 是 Compose 状态，读取它的行会自动重组，
+    //   加载完成后索引表是 Compose 状态，读取它的行会自动重组，
     //   所以这里**不需要**再把结果往下传。
-    LaunchedEffect(Unit) { WuwaAvatarIndex.ensureLoaded() }
+    LaunchedEffect(Unit) { WuwaIconIndex.ensureLoaded() }
 
     // ★ P11 补 100：常驻名单（用户填的）也参与计算。
     //   读的是 Compose 状态 —— 用户填完名单，这里自动重算、页面自动刷新，
@@ -108,6 +109,10 @@ fun GachaStatsScreen(
     ) {
         OverviewCard(g)
 
+        // ★ P11 补 102：UP 分析挪到总览下面（用户要求「放到总览版块的下面」）。
+        Spacer(Modifier.height(LocalUbSpacing.current.s))
+        UpCard(g)
+
         // ★ P11 补 98：每个卡池一张汇总卡（横向滑动）。
         //   参考图的结构是「先看每个池的汇总，再看某个池的明细」，
         //   而原来只有一张总览卡把四个池糊在一起。
@@ -124,7 +129,6 @@ fun GachaStatsScreen(
             PoolDetail(g, pools[idx])
         }
 
-        UpCard(g)
         // ★ P11 补 99：**删除了底部的「五星记录（N）」总表**（用户要求
         //   「下面的这个 5 星记录其实可以不要的」）。
         //
@@ -331,7 +335,7 @@ private fun PoolDetail(g: GachaInsights, pool: com.utilitybox.game.wutheringwave
                 val maxPity = list.maxOf { it.pityUsed }.coerceAtLeast(1)
                 list.reversed().forEach { f ->
                     UbDivider()
-                    FiveStarRow(f.name, f.pityUsed, maxPity, f.isUp, shortDate(f.time))
+                    FiveStarRow(f.name, f.resourceType, f.pityUsed, maxPity, f.isUp, shortDate(f.time))
                 }
             }
         }
@@ -349,19 +353,19 @@ private fun MiniStat(label: String, value: String, color: Color) {
 }
 
 /**
- * 一行五星：**角色头像** + 名字 + 数据条。
+ * 一行五星：**角色头像 / 武器图标** + 名字 + 数据条。
  *
- * ★ P11 补 96：原来这里用「名字首字」做圆形占位（用户反馈：
- *   「每个角色能不能获取其角色头像…而不是使用文字当头像」）。
- *   现在头像来自 `WuwaAvatarIndex`（库街区 wiki 的官方 `contentUrl`），
- *   经 `UbItemIcon` 加载并**磁盘缓存**。
+ * ★ P11 补 96 / 102：原来这里用「名字首字」做圆形占位。
+ *   现在图标来自 `WuwaIconIndex`（库街区 wiki「共鸣者」「武器」列表的官方
+ *   `contentUrl`），经 `UbItemIcon` 加载并**磁盘缓存**。
  *
- * ★★★ 索引里**没有**这个角色时，仍然回退到首字占位 ——
- *   绝不拿通用图标或别的角色的图冒充。宁可显示首字，也不显示错的头像。
+ * ★★★ 索引里**没有**这个名字时，仍然回退到首字占位 ——
+ *   绝不拿通用图标或别的角色的图冒充。宁可显示首字，也不显示错的图标。
  */
 @Composable
 private fun FiveStarRow(
     name: String,
+    resourceType: String,
     pity: Int,
     maxPity: Int,
     isUp: Boolean?,
@@ -371,22 +375,22 @@ private fun FiveStarRow(
     val s = LocalUbSpacing.current
     val t = LocalUbTypography.current
 
-    // 读 Compose 状态：头像索引加载完成后这一行会自动重组
-    val avatarUrl = WuwaAvatarIndex.urlOf(name)
+    // 读 Compose 状态：图标索引加载完成后这一行会自动重组
+    val iconUrl = WuwaIconIndex.urlOf(name, isWeapon = resourceType == "武器")
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(s.cardPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(s.m),
     ) {
-        if (avatarUrl != null) {
+        if (iconUrl != null) {
             UbItemIcon(
-                url = avatarUrl,
+                url = iconUrl,
                 contentDescription = name,
                 size = 38.dp,
             )
         } else {
-            // 兜底：索引里没有这个角色 → 首字占位（不是"缺图"，是不假装）
+            // 兜底：索引里没有这个名字 → 首字占位（不是"缺图"，是不假装）
             Box(
                 modifier = Modifier
                     .size(38.dp)

@@ -4,6 +4,33 @@
 
 ---
 
+## [P11-补102] 2026-10-23 — 唤取统计：UP 分析上移 + 专武图标
+
+### 用户反馈
+1. 「这里的分析可以放到总览版块的下面」
+2. 「这个专武目前是没有图片的，你去获取下」
+
+### 改动
+- `GachaStatsScreen.kt`：`UpCard(g)` 从页面底部移到 `OverviewCard(g)` 正下方，
+  顺序变为 总览 → UP 分析 → 分池卡片行 → 卡池明细。
+- `WuwaAvatarIndex.kt` → `WuwaIconIndex.kt`：图标索引同时抓 wiki 分类
+  **1105 共鸣者（65）** 与 **1106 武器（124）**；按 `resourceType` 查表，
+  命中不到本类再跨类兜底；磁盘缓存 `files/wuwa_icon/icons.tsv`，7 天过期，
+  网络空结果不覆盖已有表。
+- `FiveStarRow` 增加 `resourceType` 参数，武器行改用 `WuwaIconIndex.urlOf(name, isWeapon = true)`；
+  索引里确实没有的名称仍用首字圆形占位——**不拿别的图冒充**。
+- `UbApplication.kt`：安装点改为 `WuwaIconIndex`。
+
+### 验证
+- `:app:testDebugUnitTest` **404 例 / 0 失败**；`:app:assembleDebug` 成功。
+- 模拟器 API 36（`dsh_pixel10`）实装：uiautomator 坐标确认
+  总览 y≈386 → UP 分析 y≈794 → 分池卡片 y≈1366；
+  专武池五星行（玉阙玄华 / 云琅 / 天之苍苍 / 赝作的矮星）均为 `ImageView` 带 content-desc。
+- `icons.tsv` 实测 20169 B / 188 行 = 时间戳 + 65 `c` + 122 `w`；
+  `logcat -b crash` 无 `com.utilitybox` 记录。
+
+---
+
 ## [P00] 2026-10-14 — 需求分析与需求冻结
 
 ### 新增
